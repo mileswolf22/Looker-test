@@ -55,8 +55,11 @@ view: ven_mart_comercial {
   dimension: precio_caida_pedidos { type: number hidden: yes sql: ${TABLE}.precio_caida_pedidos ;; }
   dimension: senal_de_precio { type: number hidden: yes sql: ${TABLE}.senal_de_precio ;; }
   dimension: platts { type: number hidden: yes sql: ${TABLE}.platts ;; }
+  dimension: pulso {type: number hidden: yes sql: ${TABLE}.precio_pulso ;;}
+
 
   # --- MEDIDAS BASE (SUMAS) ---
+
   measure: total_toneladas_facturadas {
     type: sum
     label: "Volumen (Tons)"
@@ -145,6 +148,27 @@ view: ven_mart_comercial {
     type: sum
     label: "Total Platts"
     sql: ${platts} ;;
+    value_format_name: "decimal_0"
+  }
+
+  measure: premium_caida_pedidos {
+    type:  average
+    label: "PremiumVsCaida_Pedidos"
+    sql: ${precio_caida_pedidos}/${imp_precio_entrega_mn};;
+    value_format_name: "decimal_0"
+  }
+
+  # measure: premium_vs_facturacion {
+  #   type: average
+  #   label: "PremiumVsFacturacion"
+  #   sql:  ${};;
+  # value_format_name: "decimal_0"
+  # }
+
+  measure: indice_precios{
+    type:  average
+    label: "Indice de Precios"
+    sql:  ${precio_caida_pedidos}/${pulso};;
     value_format_name: "decimal_0"
   }
 }
