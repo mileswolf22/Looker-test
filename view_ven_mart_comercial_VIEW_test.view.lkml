@@ -168,7 +168,7 @@ view: ven_mart_comercial {
   measure: indice_precios{
     type:  average
     label: "Indice de Precios"
-    sql:  ${precio_caida_pedidos}/${pulso};;
+    sql:  SAFE_DIVIDE(${precio_caida_pedidos}/${pulso});;
     value_format_name: "decimal_0"
   }
 }
