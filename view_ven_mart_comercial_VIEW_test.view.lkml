@@ -154,7 +154,7 @@ view: ven_mart_comercial {
   measure: premium_caida_pedidos {
     type:  average
     label: "PremiumVsCaida_Pedidos"
-    sql: ${precio_caida_pedidos}/${imp_precio_entrega_mn};;
+    sql: SAFE_DIVIDE(${precio_caida_pedidos}, ${imp_precio_entrega_mn});;
     value_format_name: "decimal_0"
   }
 
