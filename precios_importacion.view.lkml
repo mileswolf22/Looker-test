@@ -36,7 +36,7 @@ view: precios_importacion {
     sql: ${TABLE}.Rebar_FOB_Spain ;;
   }
 
-  dimension: indice_amm_sur_de_europa {
+  dimension: indice_amm_sur_europa {
     type: number
     sql: ${TABLE}.Indice_AMM_Sur_de_Europa ;;
   }
@@ -125,5 +125,40 @@ view: precios_importacion {
     type: number
     sql: ${TABLE}.Precio_mercado ;;
   }
+
+  dimension: pais {
+    label: "País"
+    type: string
+    sql:
+      CASE
+        WHEN ${rebar_fob_spain} IS NOT NULL THEN 'España'
+        WHEN ${rebar_fob_turkey} IS NOT NULL THEN 'Turquía'
+        WHEN ${angulo_comercial_turkey} IS NOT NULL THEN 'Turquía'
+        WHEN ${angulo_comercial_china} IS NOT NULL THEN 'China'
+        WHEN ${vigas_ipn_turkey} IS NOT NULL THEN 'Turquía'
+        WHEN ${indice_amm_sur_europa} IS NOT NULL THEN 'Europa'
+        WHEN ${indice_amm_sudeste_asiatico} IS NOT NULL THEN 'Sudeste Asiático'
+        ELSE 'No definido'
+      END
+  ;;
+  }
+
+  measure: precio_seleccionado {
+    label: "Precio"
+    type: average
+    sql:
+      COALESCE(
+        ${rebar_fob_turkey},
+        ${rebar_fob_spain},
+        ${angulo_comercial_turkey},
+        ${angulo_comercial_china},
+        ${vigas_ipn_turkey},
+        ${indice_amm_sur_europa},
+        ${indice_amm_sudeste_asiatico},
+        ${pulso_vigas_int}
+      )
+    ;;
+  }
+
 
   }
