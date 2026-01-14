@@ -242,13 +242,13 @@ view: ven_mart_comercial {
   }
 
   measure: indice_precios {
-    type: number
+    type: average
     sql: CASE
          WHEN SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso}) IS NULL THEN NULL
          WHEN SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso}) = 0 THEN NULL
          ELSE SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso})
        END ;;
-    value_format_name: "decimal_2"
+    value_format_name: "decimal_4"
   }
 
 }
