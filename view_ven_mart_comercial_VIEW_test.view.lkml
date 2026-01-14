@@ -248,10 +248,19 @@ view: ven_mart_comercial {
   # value_format_name: "decimal_0"
   # }
 
-  measure: indice_precios{
-    type:  average
+  measure: indice_precios {
+    type: average
     label: "Indice de Precios"
-    sql:  SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso});;
+    sql:
+      CASE
+        WHEN ${precio_caida_pedidos} IS NOT NULL
+         AND ${precio_caida_pedidos} != 0
+         AND ${pulso} IS NOT NULL
+         AND ${pulso} != 0
+        THEN ${precio_caida_pedidos} / ${pulso}
+        ELSE NULL
+      END ;;
     value_format_name: "decimal_0"
   }
+
 }
