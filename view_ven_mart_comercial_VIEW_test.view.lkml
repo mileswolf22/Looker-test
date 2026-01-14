@@ -47,7 +47,9 @@ view: ven_mart_comercial {
   dimension: toneladas_tendencia_colaborada { type: number hidden: yes sql: ${TABLE}.toneladas_tendencia_colaborada ;; }
   dimension: importe_estadistico_neto_mn { type: number hidden: yes sql: ${TABLE}.importe_estadistico_neto_mn ;; }
   dimension: importe_estadistico_ajustado { type: number hidden: yes sql: ${TABLE}.importe_estadistico_ajustado ;; }
-  dimension: spread { type: number hidden: yes sql: ${TABLE}.spread ;; }
+  dimension: spread { type: number hidden: no
+    sql: ${TABLE}.spread IS NOT NULL
+    AND ${TABLE}.spread != 0;; }
   dimension: costo_mp { type: number hidden: yes sql: ${TABLE}.costo_mp ;; }
   dimension: toneladas_caida_de_pedidos { type: number hidden: yes sql: ${TABLE}.toneladas_caida_de_pedidos ;; }
   dimension: toneladas_pedidas { type: number hidden: yes sql: ${TABLE}.toneladas_pedidas ;; }
