@@ -241,26 +241,14 @@ view: ven_mart_comercial {
     value_format_name: "decimal_0"
   }
 
-  # measure: premium_vs_facturacion {
-  #   type: average
-  #   label: "PremiumVsFacturacion"
-  #   sql:  ${};;
-  # value_format_name: "decimal_0"
-  # }
-
   measure: indice_precios {
-    type: average
-    label: "Indice de Precios"
-    sql:
-      CASE
-        WHEN ${precio_caida_pedidos} IS NOT NULL
-         AND ${precio_caida_pedidos} != 0
-         AND ${pulso} IS NOT NULL
-         AND ${pulso} != 0
-        THEN ${precio_caida_pedidos} / ${pulso}
-        ELSE NULL
-      END ;;
-    value_format_name: "decimal_0"
+    type: number
+    sql: CASE
+         WHEN SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso}) IS NULL THEN NULL
+         WHEN SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso}) = 0 THEN NULL
+         ELSE SAFE_DIVIDE(${precio_caida_pedidos}, ${pulso})
+       END ;;
+    value_format_name: "decimal_2"
   }
 
 }
