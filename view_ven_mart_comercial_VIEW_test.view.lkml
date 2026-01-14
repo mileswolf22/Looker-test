@@ -57,6 +57,89 @@ view: ven_mart_comercial {
   dimension: platts { type: number hidden: yes sql: ${TABLE}.platts ;; }
   dimension: pulso {type: number hidden: yes sql: ${TABLE}.precio_pulso ;;}
 
+  # --- PRECIOS DE IMPORTACION ---
+  dimension : rebar_fob_turkey {type: number hidden: yes sql: ${TABLE}.Rebar_FOB_Turkey ;;}
+  dimension : indice_amm_sur_de_europa {type: number hidden: yes sql: ${TABLE}.Indice_AMM_Sur_Europa ;;}
+  dimension : rebar_fob_spain {type: number hidden: yes sql: ${TABLE}.Rebar_FOB_Spain ;;}
+  dimension : indice_amm_sudeste_asiatico {type: number hidden: yes sql: ${TABLE}.Indice_AMM_Sudeste_Asiatico ;;}
+  dimension : angulo_comercial_turkey {type: number hidden: yes sql: ${TABLE}.Angulo_Comercial_Turkey ;;}
+  dimension : angulo_comercial_china {type: number hidden: yes sql: ${TABLE}.Angulo_Comercial_China ;;}
+  dimension : vigas_ipn_turkey {type: number hidden: yes sql: ${TABLE}.Vigas_IPN_Turkey ;;}
+  dimension : pulso_vigas_int {type: number hidden: yes sql: ${TABLE}.Pulso_Vigas_Int ;;}
+
+  dimension: pais {
+    type: string
+    sql:
+    CASE
+      WHEN ${nom_grupo_estadistico1} ILIKE '%Turkey%' THEN 'Turkey'
+      WHEN ${nom_grupo_estadistico1} ILIKE '%Spain%' THEN 'Spain'
+      WHEN ${nom_grupo_estadistico1} ILIKE '%China%' THEN 'China'
+      WHEN ${nom_grupo_estadistico1} ILIKE '%Europa%' THEN 'Europa'
+      WHEN ${nom_grupo_estadistico1} ILIKE '%Asiatico%' THEN 'Sudeste Asiatico'
+
+      WHEN ${nom_grupo_estadistico2} ILIKE '%Turkey%' THEN 'Turkey'
+      WHEN ${nom_grupo_estadistico2} ILIKE '%China%' THEN 'China'
+
+      WHEN ${nom_grupo_estadistico3} ILIKE '%Turkey%' THEN 'Turkey'
+      WHEN ${nom_grupo_estadistico3} ILIKE '%China%' THEN 'China'
+
+      ELSE 'Internacional'
+      END ;;
+  }
+
+  dimension: precio_importacion_referencia {
+    type: number
+    sql:
+      CASE
+        -- VARILLA
+        WHEN ${nom_grupo_estadistico1} = 'VARILLA'
+             AND ${nom_grupo_estadistico2} IS NULL
+             AND ${nom_grupo_estadistico3} IS NULL
+             AND ${pais} = 'Turkey'
+          THEN ${rebar_fob_turkey}
+
+        WHEN ${nom_grupo_estadistico1} = 'VARILLA'
+        AND ${pais} = 'Spain'
+        THEN ${rebar_fob_spain}
+
+        -- ALAMBRÓN
+        WHEN ${nom_grupo_estadistico1} = 'ALAMBRON'
+        AND ${nom_grupo_estadistico2} = 'ALAMBRON TREFILAR'
+        AND ${pais} = 'Europa'
+        THEN ${indice_amm_sur_de_europa}
+
+        WHEN ${nom_grupo_estadistico1} = 'ALAMBRON'
+        AND ${nom_grupo_estadistico2} = 'ALAMBRON TREFILAR'
+        AND ${pais} = 'Sudeste Asiatico'
+        THEN ${indice_amm_sudeste_asiatico}
+
+        -- PERFILES / ÁNGULOS
+        WHEN ${nom_grupo_estadistico1} = 'PERFILES'
+        AND ${nom_grupo_estadistico2} = 'PERFILES COMERCIALES'
+        AND ${nom_grupo_estadistico3} = 'ANGULOS COMERCIALES'
+        AND ${pais} = 'Turkey'
+        THEN ${angulo_comercial_turkey}
+
+        WHEN ${nom_grupo_estadistico1} = 'PERFILES'
+        AND ${nom_grupo_estadistico2} = 'PERFILES COMERCIALES'
+        AND ${nom_grupo_estadistico3} = 'ANGULOS COMERCIALES'
+        AND ${pais} = 'China'
+        THEN ${angulo_comercial_china}
+
+        -- VIGAS
+        WHEN ${nom_grupo_estadistico1} = 'PERFILES'
+        AND ${nom_grupo_estadistico2} = 'VIGAS IPR'
+        AND ${pais} = 'Turkey'
+        THEN ${vigas_ipn_turkey}
+
+        WHEN ${nom_grupo_estadistico1} = 'PERFILES'
+        AND ${nom_grupo_estadistico2} = 'VIGAS IPR'
+        THEN ${pulso_vigas_int}
+
+        ELSE NULL
+        END ;;
+  }
+
 
   # --- MEDIDAS BASE (SUMAS) ---
 
