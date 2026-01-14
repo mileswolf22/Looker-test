@@ -10,6 +10,10 @@ explore: ven_mart_comercial {
 
 }
 
+explore: precios_importacion {
+  label: "Precios de importacion"
+}
+
 map_layer: mexico_states {
   url: "https://gist.githubusercontent.com/diegovalle/5129746/raw/c1c35e439b1d5e688bca20b79f0e53a1fc12bf9e/mx_tj.json"
   property_key: "state_name"
