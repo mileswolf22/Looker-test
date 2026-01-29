@@ -1,0 +1,340 @@
+
+view: cuadrante_izquierdo_superior {
+  derived_table: {
+    sql: -- =====================================================
+      -- QUERY OPTIMIZADO PARA CUADRANTE SUPERIOR IZQUIERDO
+      -- Tabla de Referencia: Precios Internacionales por País
+      -- =====================================================
+      
+      WITH precios_internacionales AS (
+        SELECT
+          fecha_contable,
+          semana,
+          mes,
+          anio,
+          trimestre,
+          nombre_periodo_mostrar,
+          CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
+          CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
+          CAST(precio_pulso AS FLOAT64) AS precio_pulso,
+          CAST(Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
+          CAST(Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
+          CAST(Precio_Varilla_Malasia AS FLOAT64) AS precio_usd_malasia_varilla,
+          CAST(Angulo_Comercial_Turkey AS FLOAT64) AS precio_usd_turkey_angulo,
+          CAST(Angulo_Comercial_China AS FLOAT64) AS precio_usd_china_angulo,
+          CAST(Vigas_IPN_Turkey AS FLOAT64) AS precio_usd_turkey_vigas,
+          CAST(Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
+          CAST(Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
+          CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
+          Pais_Origen_Pulso_Vigas
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        WHERE fecha_contable IS NOT NULL
+          AND fecha_contable >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)  -- Solo último mes para prueba
+          AND Tipo_Cambio IS NOT NULL
+          AND (
+            Rebar_FOB_Turkey IS NOT NULL 
+            OR Rebar_FOB_Spain IS NOT NULL 
+            OR Precio_Varilla_Malasia IS NOT NULL
+            OR Angulo_Comercial_Turkey IS NOT NULL
+            OR Angulo_Comercial_China IS NOT NULL
+            OR Vigas_IPN_Turkey IS NOT NULL
+            OR Pulso_Vigas_Int IS NOT NULL
+            OR Indice_AMM_Sur_Europa IS NOT NULL
+            OR indice_AMM_Sudeste_Asiatico IS NOT NULL
+          )
+      ),
+      
+      precios_unificados AS (
+        SELECT
+          fecha_contable,
+          semana,
+          mes,
+          anio,
+          trimestre,
+          nombre_periodo_mostrar,
+          Tipo_Cambio,
+          precio_caida_pedidos,
+          precio_pulso,
+          'Turkey - Rebar FOB' AS referencia_nombre,
+          'Turkey' AS pais,
+          'Rebar' AS producto_tipo,
+          precio_usd_turkey_rebar AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_turkey_rebar IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_turkey_rebar ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_turkey_rebar IS NOT NULL
+          AND precio_usd_turkey_rebar > 0
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'Spain - Rebar FOB' AS referencia_nombre,
+          'Spain' AS pais, 'Rebar' AS producto_tipo,
+          precio_usd_spain_rebar AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_spain_rebar IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_spain_rebar ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_spain_rebar IS NOT NULL
+          AND precio_usd_spain_rebar > 0
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'Malasia - Varilla' AS referencia_nombre,
+          'Malasia' AS pais, 'Varilla' AS producto_tipo,
+          precio_usd_malasia_varilla AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_malasia_varilla IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_malasia_varilla ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_malasia_varilla IS NOT NULL
+          AND precio_usd_malasia_varilla > 0
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'Turkey - Ángulo Comercial' AS referencia_nombre,
+          'Turkey' AS pais, 'Ángulo' AS producto_tipo,
+          precio_usd_turkey_angulo AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_turkey_angulo IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_turkey_angulo ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_turkey_angulo IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'China - Ángulo Comercial' AS referencia_nombre,
+          'China' AS pais, 'Ángulo' AS producto_tipo,
+          precio_usd_china_angulo AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_china_angulo IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_china_angulo ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_china_angulo IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'Turkey - Vigas IPN' AS referencia_nombre,
+          'Turkey' AS pais, 'Vigas IPN' AS producto_tipo,
+          precio_usd_turkey_vigas AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_turkey_vigas IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_turkey_vigas ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_turkey_vigas IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          CONCAT(IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido'), ' - Pulso Vigas') AS referencia_nombre,
+          IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido') AS pais,
+          'Pulso Vigas' AS producto_tipo,
+          precio_usd_pulso_vigas AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_pulso_vigas IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_pulso_vigas ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_pulso_vigas IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'Sur Europa - Índice AMM' AS referencia_nombre,
+          'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo,
+          precio_usd_amm_europa AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_amm_europa IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_amm_europa ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_amm_europa IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
+          'Sudeste Asiático - Índice AMM' AS referencia_nombre,
+          'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo,
+          precio_usd_amm_asia AS precio_usd,
+          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_amm_asia IS NOT NULL
+            THEN Tipo_Cambio * precio_usd_amm_asia ELSE NULL END AS precio_mxn
+        FROM precios_internacionales
+        WHERE precio_usd_amm_asia IS NOT NULL
+      ),
+      
+      precios_con_calculos AS (
+        SELECT
+          fecha_contable,
+          semana,
+          mes,
+          anio,
+          trimestre,
+          nombre_periodo_mostrar,
+          referencia_nombre,
+          pais,
+          producto_tipo,
+          precio_usd,
+          precio_mxn,
+          Tipo_Cambio,
+          precio_caida_pedidos AS precio_caida_mxn,
+          precio_pulso,
+          LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
+          CASE 
+            WHEN precio_pulso IS NOT NULL AND precio_pulso > 0 
+             AND precio_caida_pedidos IS NOT NULL AND precio_caida_pedidos > 0
+            THEN precio_caida_pedidos / precio_pulso
+            ELSE NULL
+          END AS indice_precio
+        FROM precios_unificados
+        WHERE precio_mxn IS NOT NULL
+          AND precio_mxn > 0  -- Filtrar valores inválidos
+      )
+      
+      SELECT
+        referencia_nombre,
+        pais,
+        producto_tipo,
+        semana,
+        mes,
+        anio,
+        trimestre,
+        nombre_periodo_mostrar,
+        fecha_contable,
+        precio_usd,
+        precio_mxn AS precio_nov,
+        precio_caida_mxn,
+        CASE 
+          WHEN precio_semana_anterior IS NOT NULL AND precio_semana_anterior > 0
+          THEN ROUND(((precio_mxn - precio_semana_anterior) / precio_semana_anterior) * 100, 2)
+          ELSE NULL
+        END AS caida_porcentual,
+        CASE 
+          WHEN precio_caida_mxn IS NOT NULL AND precio_mxn IS NOT NULL AND precio_mxn > 0
+          THEN ROUND(((precio_caida_mxn - precio_mxn) / precio_mxn) * 100, 2)
+          ELSE NULL
+        END AS senal_porcentual,
+        indice_precio,
+        Tipo_Cambio
+      FROM precios_con_calculos
+      ORDER BY semana DESC, referencia_nombre, fecha_contable DESC
+      LIMIT 500;  -- Muy reducido para evitar timeout ;;
+  }
+
+  measure: count {
+    type: count
+    drill_fields: [detail*]
+  }
+
+  dimension: referencia_nombre {
+    type: string
+    sql: ${TABLE}.referencia_nombre ;;
+  }
+
+  dimension: pais {
+    type: string
+    sql: ${TABLE}.pais ;;
+  }
+
+  dimension: producto_tipo {
+    type: string
+    sql: ${TABLE}.producto_tipo ;;
+  }
+
+  dimension: semana {
+    type: string
+    sql: ${TABLE}.semana ;;
+  }
+
+  dimension: mes {
+    type: string
+    sql: ${TABLE}.mes ;;
+  }
+
+  dimension: anio {
+    type: number
+    sql: ${TABLE}.anio ;;
+  }
+
+  dimension: trimestre {
+    type: string
+    sql: ${TABLE}.trimestre ;;
+  }
+
+  dimension: nombre_periodo_mostrar {
+    type: string
+    sql: ${TABLE}.nombre_periodo_mostrar ;;
+  }
+
+  dimension: fecha_contable {
+    type: date
+    datatype: date
+    sql: ${TABLE}.fecha_contable ;;
+  }
+
+  dimension: precio_usd {
+    type: number
+    sql: ${TABLE}.precio_usd ;;
+  }
+
+  dimension: precio_nov {
+    type: number
+    sql: ${TABLE}.precio_nov ;;
+  }
+
+  dimension: precio_caida_mxn {
+    type: number
+    sql: ${TABLE}.precio_caida_mxn ;;
+  }
+
+  dimension: caida_porcentual {
+    type: number
+    sql: ${TABLE}.caida_porcentual ;;
+  }
+
+  dimension: senal_porcentual {
+    type: number
+    sql: ${TABLE}.senal_porcentual ;;
+  }
+
+  dimension: indice_precio {
+    type: number
+    sql: ${TABLE}.indice_precio ;;
+  }
+
+  dimension: tipo_cambio {
+    type: number
+    sql: ${TABLE}.Tipo_Cambio ;;
+  }
+
+  set: detail {
+    fields: [
+        referencia_nombre,
+	pais,
+	producto_tipo,
+	semana,
+	mes,
+	anio,
+	trimestre,
+	nombre_periodo_mostrar,
+	fecha_contable,
+	precio_usd,
+	precio_nov,
+	precio_caida_mxn,
+	caida_porcentual,
+	senal_porcentual,
+	indice_precio,
+	tipo_cambio
+    ]
+  }
+}
