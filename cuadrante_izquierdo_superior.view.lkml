@@ -24,7 +24,6 @@ view: cuadrante_izquierdo_superior {
           Pais_Origen_Pulso_Vigas
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE fecha_contable IS NOT NULL
-          AND fecha_contable >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
           AND Tipo_Cambio IS NOT NULL
           AND (
             Rebar_FOB_Turkey IS NOT NULL
@@ -227,9 +226,7 @@ view: cuadrante_izquierdo_superior {
         END AS senal_porcentual,
         indice_precio,
         Tipo_Cambio
-      FROM precios_con_calculos
-      ORDER BY semana DESC, referencia_nombre, fecha_contable DESC
-      LIMIT 500 ;;
+      FROM precios_con_calculos ;;
   }
 
   # ============================================
@@ -301,49 +298,49 @@ view: cuadrante_izquierdo_superior {
   }
 
   measure: precio_usd {
-    type: number
+    type: sum
     sql: ${TABLE}.precio_usd ;;
     value_format_name: usd
     description: "Precio en USD"
   }
 
   measure: precio_nov {
-    type: number
+    type: sum
     sql: ${TABLE}.precio_nov ;;
     value_format_name: usd
     description: "Precio del período en MXN"
   }
 
   measure: precio_caida_mxn {
-    type: number
+    type: sum
     sql: ${TABLE}.precio_caida_mxn ;;
     value_format_name: usd
     description: "Precio caída en MXN"
   }
 
   measure: caida_porcentual {
-    type: number
+    type: sum
     sql: ${TABLE}.caida_porcentual ;;
     value_format_name: decimal_2
     description: "Variación porcentual vs período anterior (%)"
   }
 
   measure: senal_porcentual {
-    type: number
+    type: sum
     sql: ${TABLE}.senal_porcentual ;;
     value_format_name: decimal_2
     description: "Señal porcentual calculada (%)"
   }
 
   measure: indice_precio {
-    type: number
+    type: sum
     sql: ${TABLE}.indice_precio ;;
     value_format_name: decimal_4
     description: "Índice de precio (precio_caida / pulso)"
   }
 
   measure: tipo_cambio {
-    type: number
+    type: sum
     sql: ${TABLE}.Tipo_Cambio ;;
     value_format_name: decimal_2
     description: "Tipo de cambio usado para conversión"
