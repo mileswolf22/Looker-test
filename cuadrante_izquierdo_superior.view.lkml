@@ -225,7 +225,8 @@ view: cuadrante_izquierdo_superior {
           ELSE NULL
         END AS senal_porcentual,
         indice_precio,
-        Tipo_Cambio
+        Tipo_Cambio,
+        precio_pulso
       FROM precios_con_calculos ;;
   }
 
@@ -346,6 +347,20 @@ view: cuadrante_izquierdo_superior {
     description: "Tipo de cambio usado para conversión"
   }
 
+  measure: precio_pulso {
+    type: average
+    sql: ${TABLE}.precio_pulso ;;
+    value_format_name: usd
+    description: "Precio pulso en MXN"
+  }
+
+  measure: precio_pulso_min {
+    type: min
+    sql: ${TABLE}.precio_pulso ;;
+    value_format_name: usd
+    description: "Precio pulso mínimo en MXN"
+  }
+
   # ============================================
   # SETS (Agrupaciones de campos)
   # ============================================
@@ -367,7 +382,9 @@ view: cuadrante_izquierdo_superior {
       caida_porcentual,
       senal_porcentual,
       indice_precio,
-      tipo_cambio
+      tipo_cambio,
+      precio_pulso,
+      precio_pulso_min
     ]
   }
 }
