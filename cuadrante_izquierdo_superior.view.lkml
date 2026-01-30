@@ -1,11 +1,6 @@
-
 view: cuadrante_izquierdo_superior {
   derived_table: {
-    sql: -- =====================================================
-      -- QUERY OPTIMIZADO PARA CUADRANTE SUPERIOR IZQUIERDO
-      -- Tabla de Referencia: Precios Internacionales por País
-      -- =====================================================
-      
+    sql:
       WITH precios_internacionales AS (
         SELECT
           fecha_contable,
@@ -29,11 +24,11 @@ view: cuadrante_izquierdo_superior {
           Pais_Origen_Pulso_Vigas
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE fecha_contable IS NOT NULL
-          AND fecha_contable >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)  -- Solo último mes para prueba
+          AND fecha_contable >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
           AND Tipo_Cambio IS NOT NULL
           AND (
-            Rebar_FOB_Turkey IS NOT NULL 
-            OR Rebar_FOB_Spain IS NOT NULL 
+            Rebar_FOB_Turkey IS NOT NULL
+            OR Rebar_FOB_Spain IS NOT NULL
             OR Precio_Varilla_Malasia IS NOT NULL
             OR Angulo_Comercial_Turkey IS NOT NULL
             OR Angulo_Comercial_China IS NOT NULL
@@ -43,7 +38,7 @@ view: cuadrante_izquierdo_superior {
             OR indice_AMM_Sudeste_Asiatico IS NOT NULL
           )
       ),
-      
+
       precios_unificados AS (
         SELECT
           fecha_contable,
@@ -64,9 +59,9 @@ view: cuadrante_izquierdo_superior {
         FROM precios_internacionales
         WHERE precio_usd_turkey_rebar IS NOT NULL
           AND precio_usd_turkey_rebar > 0
-        
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -78,9 +73,9 @@ view: cuadrante_izquierdo_superior {
         FROM precios_internacionales
         WHERE precio_usd_spain_rebar IS NOT NULL
           AND precio_usd_spain_rebar > 0
-        
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -92,9 +87,9 @@ view: cuadrante_izquierdo_superior {
         FROM precios_internacionales
         WHERE precio_usd_malasia_varilla IS NOT NULL
           AND precio_usd_malasia_varilla > 0
-        
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -105,9 +100,10 @@ view: cuadrante_izquierdo_superior {
             THEN Tipo_Cambio * precio_usd_turkey_angulo ELSE NULL END AS precio_mxn
         FROM precios_internacionales
         WHERE precio_usd_turkey_angulo IS NOT NULL
-        
+          AND precio_usd_turkey_angulo > 0
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -118,9 +114,10 @@ view: cuadrante_izquierdo_superior {
             THEN Tipo_Cambio * precio_usd_china_angulo ELSE NULL END AS precio_mxn
         FROM precios_internacionales
         WHERE precio_usd_china_angulo IS NOT NULL
-        
+          AND precio_usd_china_angulo > 0
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -131,9 +128,10 @@ view: cuadrante_izquierdo_superior {
             THEN Tipo_Cambio * precio_usd_turkey_vigas ELSE NULL END AS precio_mxn
         FROM precios_internacionales
         WHERE precio_usd_turkey_vigas IS NOT NULL
-        
+          AND precio_usd_turkey_vigas > 0
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -145,9 +143,10 @@ view: cuadrante_izquierdo_superior {
             THEN Tipo_Cambio * precio_usd_pulso_vigas ELSE NULL END AS precio_mxn
         FROM precios_internacionales
         WHERE precio_usd_pulso_vigas IS NOT NULL
-        
+          AND precio_usd_pulso_vigas > 0
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -158,9 +157,10 @@ view: cuadrante_izquierdo_superior {
             THEN Tipo_Cambio * precio_usd_amm_europa ELSE NULL END AS precio_mxn
         FROM precios_internacionales
         WHERE precio_usd_amm_europa IS NOT NULL
-        
+          AND precio_usd_amm_europa > 0
+
         UNION ALL
-        
+
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
@@ -171,8 +171,9 @@ view: cuadrante_izquierdo_superior {
             THEN Tipo_Cambio * precio_usd_amm_asia ELSE NULL END AS precio_mxn
         FROM precios_internacionales
         WHERE precio_usd_amm_asia IS NOT NULL
+          AND precio_usd_amm_asia > 0
       ),
-      
+
       precios_con_calculos AS (
         SELECT
           fecha_contable,
@@ -190,17 +191,17 @@ view: cuadrante_izquierdo_superior {
           precio_caida_pedidos AS precio_caida_mxn,
           precio_pulso,
           LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
-          CASE 
-            WHEN precio_pulso IS NOT NULL AND precio_pulso > 0 
+          CASE
+            WHEN precio_pulso IS NOT NULL AND precio_pulso > 0
              AND precio_caida_pedidos IS NOT NULL AND precio_caida_pedidos > 0
             THEN precio_caida_pedidos / precio_pulso
             ELSE NULL
           END AS indice_precio
         FROM precios_unificados
         WHERE precio_mxn IS NOT NULL
-          AND precio_mxn > 0  -- Filtrar valores inválidos
+          AND precio_mxn > 0
       )
-      
+
       SELECT
         referencia_nombre,
         pais,
@@ -214,12 +215,12 @@ view: cuadrante_izquierdo_superior {
         precio_usd,
         precio_mxn AS precio_nov,
         precio_caida_mxn,
-        CASE 
+        CASE
           WHEN precio_semana_anterior IS NOT NULL AND precio_semana_anterior > 0
           THEN ROUND(((precio_mxn - precio_semana_anterior) / precio_semana_anterior) * 100, 2)
           ELSE NULL
         END AS caida_porcentual,
-        CASE 
+        CASE
           WHEN precio_caida_mxn IS NOT NULL AND precio_mxn IS NOT NULL AND precio_mxn > 0
           THEN ROUND(((precio_caida_mxn - precio_mxn) / precio_mxn) * 100, 2)
           ELSE NULL
@@ -228,113 +229,148 @@ view: cuadrante_izquierdo_superior {
         Tipo_Cambio
       FROM precios_con_calculos
       ORDER BY semana DESC, referencia_nombre, fecha_contable DESC
-      LIMIT 500;  -- Muy reducido para evitar timeout ;;
+      LIMIT 500 ;;
   }
 
-  measure: count {
-    type: count
-    drill_fields: [detail*]
-  }
+  # ============================================
+  # DIMENSIONS (Campos para agrupar/filtrar)
+  # ============================================
 
   dimension: referencia_nombre {
     type: string
     sql: ${TABLE}.referencia_nombre ;;
+    description: "Nombre de la referencia de precio internacional"
   }
 
   dimension: pais {
     type: string
     sql: ${TABLE}.pais ;;
+    description: "País de origen del precio de referencia"
   }
 
   dimension: producto_tipo {
     type: string
     sql: ${TABLE}.producto_tipo ;;
+    description: "Tipo de producto (Rebar, Varilla, Ángulo, etc.)"
   }
 
   dimension: semana {
     type: string
     sql: ${TABLE}.semana ;;
+    description: "Semana en formato YYYYWW"
   }
 
   dimension: mes {
     type: string
     sql: ${TABLE}.mes ;;
+    description: "Mes en formato YYYYMM"
   }
 
   dimension: anio {
     type: number
     sql: ${TABLE}.anio ;;
+    description: "Año"
   }
 
   dimension: trimestre {
     type: string
     sql: ${TABLE}.trimestre ;;
+    description: "Trimestre (ej: Trim 1, Trim 2, etc.)"
   }
 
   dimension: nombre_periodo_mostrar {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
+    description: "Período formateado para mostrar (ej: Nov-2025)"
   }
 
   dimension: fecha_contable {
     type: date
     datatype: date
     sql: ${TABLE}.fecha_contable ;;
+    description: "Fecha contable"
   }
 
-  dimension: precio_usd {
+  # ============================================
+  # MEASURES (Valores numéricos calculables)
+  # ============================================
+
+  measure: count {
+    type: count
+    drill_fields: [detail*]
+  }
+
+  measure: precio_usd {
     type: number
     sql: ${TABLE}.precio_usd ;;
+    value_format_name: usd
+    description: "Precio en USD"
   }
 
-  dimension: precio_nov {
+  measure: precio_nov {
     type: number
     sql: ${TABLE}.precio_nov ;;
+    value_format_name: usd
+    description: "Precio del período en MXN"
   }
 
-  dimension: precio_caida_mxn {
+  measure: precio_caida_mxn {
     type: number
     sql: ${TABLE}.precio_caida_mxn ;;
+    value_format_name: usd
+    description: "Precio caída en MXN"
   }
 
-  dimension: caida_porcentual {
+  measure: caida_porcentual {
     type: number
     sql: ${TABLE}.caida_porcentual ;;
+    value_format_name: decimal_2
+    description: "Variación porcentual vs período anterior (%)"
   }
 
-  dimension: senal_porcentual {
+  measure: senal_porcentual {
     type: number
     sql: ${TABLE}.senal_porcentual ;;
+    value_format_name: decimal_2
+    description: "Señal porcentual calculada (%)"
   }
 
-  dimension: indice_precio {
+  measure: indice_precio {
     type: number
     sql: ${TABLE}.indice_precio ;;
+    value_format_name: decimal_4
+    description: "Índice de precio (precio_caida / pulso)"
   }
 
-  dimension: tipo_cambio {
+  measure: tipo_cambio {
     type: number
     sql: ${TABLE}.Tipo_Cambio ;;
+    value_format_name: decimal_2
+    description: "Tipo de cambio usado para conversión"
   }
+
+  # ============================================
+  # SETS (Agrupaciones de campos)
+  # ============================================
 
   set: detail {
     fields: [
-        referencia_nombre,
-	pais,
-	producto_tipo,
-	semana,
-	mes,
-	anio,
-	trimestre,
-	nombre_periodo_mostrar,
-	fecha_contable,
-	precio_usd,
-	precio_nov,
-	precio_caida_mxn,
-	caida_porcentual,
-	senal_porcentual,
-	indice_precio,
-	tipo_cambio
+      referencia_nombre,
+      pais,
+      producto_tipo,
+      semana,
+      mes,
+      anio,
+      trimestre,
+      nombre_periodo_mostrar,
+      fecha_contable,
+      precio_usd,
+      precio_nov,
+      precio_caida_mxn,
+      caida_porcentual,
+      senal_porcentual,
+      indice_precio,
+      tipo_cambio
     ]
   }
 }
