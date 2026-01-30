@@ -305,28 +305,28 @@ view: cuadrante_izquierdo_superior {
   }
 
   measure: precio_nov {
-    type: sum
+    type: average
     sql: ${TABLE}.precio_nov ;;
     value_format_name: usd
     description: "Precio del período en MXN"
   }
 
   measure: precio_caida_mxn {
-    type: sum
+    type: average
     sql: ${TABLE}.precio_caida_mxn ;;
     value_format_name: usd
     description: "Precio caída en MXN"
   }
 
   measure: caida_porcentual {
-    type: sum
+    type: average
     sql: ${TABLE}.caida_porcentual ;;
     value_format_name: decimal_2
     description: "Variación porcentual vs período anterior (%)"
   }
 
   measure: senal_porcentual {
-    type: sum
+    type: average
     sql: ${TABLE}.senal_porcentual ;;
     value_format_name: decimal_2
     description: "Señal porcentual calculada (%)"
