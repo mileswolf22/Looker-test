@@ -1,7 +1,14 @@
 view: cuadrante_izquierdo_superior {
   derived_table: {
     sql:
-      WITH precios_internacionales AS (
+      WITH semana_limite AS (
+        SELECT
+          -- Calcular semana límite en formato YYYYWW (semana actual - 5 semanas)
+          CAST(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 5 WEEK)) AS STRING) ||
+          LPAD(CAST(EXTRACT(ISOWEEK FROM DATE_SUB(CURRENT_DATE(), INTERVAL 5 WEEK)) AS STRING), 2, '0') AS semana_limite_str
+      ),
+
+      precios_internacionales AS (
         SELECT
           fecha_contable,
           semana,
@@ -23,8 +30,10 @@ view: cuadrante_izquierdo_superior {
           CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
           Pais_Origen_Pulso_Vigas
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        CROSS JOIN semana_limite
         WHERE fecha_contable IS NOT NULL
           AND Tipo_Cambio IS NOT NULL
+          AND semana >= (SELECT semana_limite_str FROM semana_limite)
           AND (
             Rebar_FOB_Turkey IS NOT NULL
             OR Rebar_FOB_Spain IS NOT NULL
