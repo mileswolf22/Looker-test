@@ -131,15 +131,14 @@ view: cuadrante_izquierdo_inferior {
           trimestre,
           nombre_periodo_mostrar,
           fecha_contable,
-          CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
-          CAST(platts AS FLOAT64) AS platts,
-          CAST(Platts_total AS FLOAT64) AS platts_total,
-          CAST(senal_de_precio AS FLOAT64) AS senal_de_precio,
-          CAST(precio_senial AS FLOAT64) AS precio_senial,
-          CAST(toneladas_pvo AS FLOAT64) AS toneladas_pvo,
-          CAST(toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
-          CAST(toneladas_caida_de_pedidos AS FLOAT64) AS toneladas_caida_de_pedidos,
-          CAST(imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
+          SAFE_CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
+          SAFE_CAST(Platts_total AS FLOAT64) AS platts_total,
+          SAFE_CAST(senal_de_precio AS FLOAT64) AS senal_de_precio,
+          SAFE_CAST(precio_senial AS FLOAT64) AS precio_senial,
+          SAFE_CAST(toneladas_pvo AS FLOAT64) AS toneladas_pvo,
+          SAFE_CAST(toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
+          SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) AS toneladas_caida_de_pedidos,
+          SAFE_CAST(imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_limite
         WHERE semana >= (SELECT semana_limite_str FROM semana_limite)
@@ -157,8 +156,7 @@ view: cuadrante_izquierdo_inferior {
           db.nombre_periodo_mostrar,
           db.fecha_contable,
           db.precio_caida_pedidos,
-          db.platts,
-          COALESCE(db.platts_total, db.platts) AS platts_final,
+          db.platts_total AS platts_final,
           COALESCE(db.senal_de_precio, db.precio_senial) AS senal_precio_final,
           db.toneladas_pvo,
           db.toneladas_facturadas,
