@@ -1,11 +1,20 @@
 view: cuadrante_izquierdo_superior {
   derived_table: {
     sql:
-      WITH semana_limite AS (
-        SELECT
-          -- Calcular semana límite en formato YYYYWW (semana actual - 5 semanas)
-          CAST(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 5 WEEK)) AS STRING) ||
-          LPAD(CAST(EXTRACT(ISOWEEK FROM DATE_SUB(CURRENT_DATE(), INTERVAL 5 WEEK)) AS STRING), 2, '0') AS semana_limite_str
+      -- Encontrar la semana máxima disponible en los datos y calcular límite (últimas 6 semanas)
+      semanas_disponibles AS (
+        SELECT DISTINCT semana
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        WHERE fecha_contable IS NOT NULL
+          AND Tipo_Cambio IS NOT NULL
+          AND semana IS NOT NULL
+        ORDER BY semana DESC
+        LIMIT 6
+      ),
+
+      semana_limite AS (
+        SELECT MIN(semana) AS semana_limite_str
+        FROM semanas_disponibles
       ),
 
       precios_internacionales AS (
@@ -16,18 +25,18 @@ view: cuadrante_izquierdo_superior {
           anio,
           trimestre,
           nombre_periodo_mostrar,
-          CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
-          CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
-          CAST(precio_pulso AS FLOAT64) AS precio_pulso,
-          CAST(Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
-          CAST(Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
-          CAST(Precio_Varilla_Malasia AS FLOAT64) AS precio_usd_malasia_varilla,
-          CAST(Angulo_Comercial_Turkey AS FLOAT64) AS precio_usd_turkey_angulo,
-          CAST(Angulo_Comercial_China AS FLOAT64) AS precio_usd_china_angulo,
-          CAST(Vigas_IPN_Turkey AS FLOAT64) AS precio_usd_turkey_vigas,
-          CAST(Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
-          CAST(Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
-          CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
+          SAFE_CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
+          SAFE_CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
+          SAFE_CAST(precio_pulso AS FLOAT64) AS precio_pulso,
+          SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
+          SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
+          SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) AS precio_usd_malasia_varilla,
+          SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) AS precio_usd_turkey_angulo,
+          SAFE_CAST(Angulo_Comercial_China AS FLOAT64) AS precio_usd_china_angulo,
+          SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) AS precio_usd_turkey_vigas,
+          SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
+          SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
+          SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
           Pais_Origen_Pulso_Vigas
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_limite
@@ -199,12 +208,7 @@ view: cuadrante_izquierdo_superior {
           precio_caida_pedidos AS precio_caida_mxn,
           precio_pulso,
           LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
-          CASE
-            WHEN precio_pulso IS NOT NULL AND precio_pulso > 0
-             AND precio_caida_pedidos IS NOT NULL AND precio_caida_pedidos > 0
-            THEN precio_caida_pedidos / precio_pulso
-            ELSE NULL
-          END AS indice_precio
+          SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
         FROM precios_unificados
         WHERE precio_mxn IS NOT NULL
           AND precio_mxn > 0
@@ -223,16 +227,8 @@ view: cuadrante_izquierdo_superior {
         precio_usd,
         precio_mxn AS precio_nov,
         precio_caida_mxn,
-        CASE
-          WHEN precio_semana_anterior IS NOT NULL AND precio_semana_anterior > 0
-          THEN ROUND(((precio_mxn - precio_semana_anterior) / precio_semana_anterior) * 100, 2)
-          ELSE NULL
-        END AS caida_porcentual,
-        CASE
-          WHEN precio_caida_mxn IS NOT NULL AND precio_mxn IS NOT NULL AND precio_mxn > 0
-          THEN ROUND(((precio_caida_mxn - precio_mxn) / precio_mxn) * 100, 2)
-          ELSE NULL
-        END AS senal_porcentual,
+        ROUND(SAFE_DIVIDE((precio_mxn - precio_semana_anterior), precio_semana_anterior) * 100, 2) AS caida_porcentual,
+        ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_mxn), precio_mxn) * 100, 2) AS senal_porcentual,
         indice_precio,
         Tipo_Cambio,
         precio_pulso
