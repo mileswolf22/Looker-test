@@ -15,9 +15,21 @@ view: cuadrante_izquierdo_superior {
         CROSS JOIN semana_actual_calculada
         WHERE fecha_contable IS NOT NULL
           AND Tipo_Cambio IS NOT NULL
+          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND semana IS NOT NULL
           AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
           AND fecha_contable <= CURRENT_DATE()
+          AND (
+            (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
+            OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
+            OR (SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) IS NOT NULL AND SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0)
+            OR (SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) > 0)
+            OR (SAFE_CAST(Angulo_Comercial_China AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_China AS FLOAT64) > 0)
+            OR (SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) > 0)
+            OR (SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) IS NOT NULL AND SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) > 0)
+            OR (SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) IS NOT NULL AND SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0)
+            OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
+          )
         ORDER BY semana DESC
         LIMIT 6
       ),
@@ -52,17 +64,18 @@ view: cuadrante_izquierdo_superior {
         CROSS JOIN semana_limite
         WHERE fecha_contable IS NOT NULL
           AND Tipo_Cambio IS NOT NULL
+          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND semana >= (SELECT semana_limite_str FROM semana_limite)
           AND (
-            Rebar_FOB_Turkey IS NOT NULL
-            OR Rebar_FOB_Spain IS NOT NULL
-            OR Precio_Varilla_Malasia IS NOT NULL
-            OR Angulo_Comercial_Turkey IS NOT NULL
-            OR Angulo_Comercial_China IS NOT NULL
-            OR Vigas_IPN_Turkey IS NOT NULL
-            OR Pulso_Vigas_Int IS NOT NULL
-            OR Indice_AMM_Sur_Europa IS NOT NULL
-            OR indice_AMM_Sudeste_Asiatico IS NOT NULL
+            (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
+            OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
+            OR (SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) IS NOT NULL AND SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0)
+            OR (SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) > 0)
+            OR (SAFE_CAST(Angulo_Comercial_China AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_China AS FLOAT64) > 0)
+            OR (SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) > 0)
+            OR (SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) IS NOT NULL AND SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) > 0)
+            OR (SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) IS NOT NULL AND SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0)
+            OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
           )
       ),
 
