@@ -29,12 +29,10 @@ view: cuadrante_superior_derecha {
               AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
               AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
               AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-              AND precio_pulso IS NOT NULL
-              AND SAFE_CAST(precio_pulso AS FLOAT64) > 0
             )
+            OR toneladas_facturadas IS NOT NULL
+            OR precio_pulso IS NOT NULL
           )
-          AND toneladas_facturadas IS NOT NULL
-          AND SAFE_CAST(toneladas_facturadas AS FLOAT64) > 0
         ORDER BY semana DESC
         LIMIT 6
       ),
@@ -71,12 +69,10 @@ view: cuadrante_superior_derecha {
               AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
               AND SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
               AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-              AND v.precio_pulso IS NOT NULL
-              AND SAFE_CAST(v.precio_pulso AS FLOAT64) > 0
             )
+            OR v.toneladas_facturadas IS NOT NULL
+            OR v.precio_pulso IS NOT NULL
           )
-          AND v.toneladas_facturadas IS NOT NULL
-          AND SAFE_CAST(v.toneladas_facturadas AS FLOAT64) > 0
       ),
 
       datos_con_indice AS (
