@@ -38,51 +38,45 @@ view: cuadrante_superior_derecha {
         ORDER BY semana DESC
         LIMIT 6
       ),
-      semana_limite AS (
-        SELECT MIN(semana) AS semana_limite_str
-        FROM semanas_disponibles
-      ),
-
       datos_base AS (
         SELECT
-          semana,
-          mes,
-          anio,
-          trimestre,
-          nombre_periodo_mostrar,
-          fecha_contable,
-          SAFE_CAST(spread AS FLOAT64) AS spread,
-          SAFE_CAST(costo_mp AS FLOAT64) AS costo_mp,
+          v.semana,
+          v.mes,
+          v.anio,
+          v.trimestre,
+          v.nombre_periodo_mostrar,
+          v.fecha_contable,
+          SAFE_CAST(v.spread AS FLOAT64) AS spread,
+          SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
           -- Calcular precio_caida_pedidos según la fórmula proporcionada
           CASE
-            WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
-              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
-            THEN SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) *
-                 SAFE_DIVIDE(SAFE_CAST(imp_precio_entrega_mn AS FLOAT64),
-                             SAFE_CAST(toneladas_pedidas AS FLOAT64))
+            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) IS NOT NULL
+            THEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) *
+                 SAFE_DIVIDE(SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
+                             SAFE_CAST(v.toneladas_pedidas AS FLOAT64))
             ELSE NULL
           END AS precio_caida_pedidos,
-          SAFE_CAST(precio_pulso AS FLOAT64) AS precio_pulso,
-          SAFE_CAST(toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
-          SAFE_CAST(imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
-        CROSS JOIN semana_limite
-        WHERE semana IS NOT NULL
-          AND fecha_contable IS NOT NULL
-          AND semana >= (SELECT semana_limite_str FROM semana_limite)
+          SAFE_CAST(v.precio_pulso AS FLOAT64) AS precio_pulso,
+          SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
+          SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
+        WHERE v.semana IS NOT NULL
+          AND v.fecha_contable IS NOT NULL
+          AND v.semana IN (SELECT semana FROM semanas_disponibles)
           AND (
-            spread IS NOT NULL
+            v.spread IS NOT NULL
             OR (
-              SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
-              AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-              AND precio_pulso IS NOT NULL
-              AND SAFE_CAST(precio_pulso AS FLOAT64) > 0
+              SAFE_CAST(v.toneladas_pedidas AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+              AND v.precio_pulso IS NOT NULL
+              AND SAFE_CAST(v.precio_pulso AS FLOAT64) > 0
             )
           )
-          AND toneladas_facturadas IS NOT NULL
-          AND SAFE_CAST(toneladas_facturadas AS FLOAT64) > 0
+          AND v.toneladas_facturadas IS NOT NULL
+          AND SAFE_CAST(v.toneladas_facturadas AS FLOAT64) > 0
       ),
 
       datos_con_indice AS (
