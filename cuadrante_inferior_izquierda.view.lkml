@@ -7,48 +7,84 @@ view: cuadrante_izquierdo_inferior {
       -- Optimizado para reducir lecturas y procesamiento
       -- =====================================================
 
-      WITH semana_limite AS (
+      WITH
+      -- Calcular la semana actual para filtrar semanas futuras
+      semana_actual_calculada AS (
         SELECT
-          -- Calcular semana límite en formato YYYYWW (semana actual - 5 semanas)
-          CAST(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 5 WEEK)) AS STRING) ||
-          LPAD(CAST(EXTRACT(ISOWEEK FROM DATE_SUB(CURRENT_DATE(), INTERVAL 5 WEEK)) AS STRING), 2, '0') AS semana_limite_str
+          CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
+          LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
+      ),
+      -- Encontrar las últimas 6 semanas disponibles con datos válidos
+      semanas_disponibles AS (
+        SELECT DISTINCT semana
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        CROSS JOIN semana_actual_calculada
+        WHERE fecha_contable IS NOT NULL
+          AND semana IS NOT NULL
+          AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+          AND fecha_contable <= CURRENT_DATE()
+          AND Tipo_Cambio IS NOT NULL
+          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
+          AND (
+            precio_caida_pedidos IS NOT NULL
+            OR (
+              SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+            )
+            OR Platts_total IS NOT NULL
+            OR senal_de_precio IS NOT NULL
+            OR precio_senial IS NOT NULL
+            OR toneladas_pvo IS NOT NULL
+            OR toneladas_facturadas IS NOT NULL
+          )
+        ORDER BY semana DESC
+        LIMIT 6
       ),
 
       -- Una sola lectura de tabla base con todos los campos necesarios
       datos_base_unificados AS (
         SELECT
-          semana,
-          mes,
-          anio,
-          trimestre,
-          nombre_periodo_mostrar,
-          fecha_contable,
-          -- Campos para precios internacionales
-          CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
-          CAST(Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
-          CAST(Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
-          CAST(Precio_Varilla_Malasia AS FLOAT64) AS precio_usd_malasia_varilla,
-          CAST(Angulo_Comercial_Turkey AS FLOAT64) AS precio_usd_turkey_angulo,
-          CAST(Angulo_Comercial_China AS FLOAT64) AS precio_usd_china_angulo,
-          CAST(Vigas_IPN_Turkey AS FLOAT64) AS precio_usd_turkey_vigas,
-          CAST(Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
-          CAST(Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
-          CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
-          -- Campos para el cuadrante inferior
-          SAFE_CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
-          SAFE_CAST(Platts_total AS FLOAT64) AS platts_total,
-          SAFE_CAST(senal_de_precio AS FLOAT64) AS senal_de_precio,
-          SAFE_CAST(precio_senial AS FLOAT64) AS precio_senial,
-          SAFE_CAST(toneladas_pvo AS FLOAT64) AS toneladas_pvo,
-          SAFE_CAST(toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
-          SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) AS toneladas_caida_de_pedidos,
-          SAFE_CAST(imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
-        CROSS JOIN semana_limite
-        WHERE semana >= (SELECT semana_limite_str FROM semana_limite)
-          AND fecha_contable IS NOT NULL
-          AND semana IS NOT NULL
-          AND Tipo_Cambio IS NOT NULL
+          v.semana,
+          v.mes,
+          v.anio,
+          v.trimestre,
+          v.nombre_periodo_mostrar,
+          v.fecha_contable,
+          -- Campos para precios internacionales (usando SAFE_CAST)
+          SAFE_CAST(v.Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
+          SAFE_CAST(v.Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
+          SAFE_CAST(v.Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
+          SAFE_CAST(v.Precio_Varilla_Malasia AS FLOAT64) AS precio_usd_malasia_varilla,
+          SAFE_CAST(v.Angulo_Comercial_Turkey AS FLOAT64) AS precio_usd_turkey_angulo,
+          SAFE_CAST(v.Angulo_Comercial_China AS FLOAT64) AS precio_usd_china_angulo,
+          SAFE_CAST(v.Vigas_IPN_Turkey AS FLOAT64) AS precio_usd_turkey_vigas,
+          SAFE_CAST(v.Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
+          SAFE_CAST(v.Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
+          SAFE_CAST(v.indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
+          -- Calcular precio_caida_pedidos según la fórmula proporcionada
+          CASE
+            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) IS NOT NULL
+            THEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) *
+                 SAFE_DIVIDE(SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
+                             SAFE_CAST(v.toneladas_pedidas AS FLOAT64))
+            ELSE SAFE_CAST(v.precio_caida_pedidos AS FLOAT64)
+          END AS precio_caida_pedidos,
+          SAFE_CAST(v.Platts_total AS FLOAT64) AS platts_total,
+          SAFE_CAST(v.senal_de_precio AS FLOAT64) AS senal_de_precio,
+          SAFE_CAST(v.precio_senial AS FLOAT64) AS precio_senial,
+          SAFE_CAST(v.toneladas_pvo AS FLOAT64) AS toneladas_pvo,
+          SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
+          SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) AS toneladas_caida_de_pedidos,
+          SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
+        WHERE v.semana IS NOT NULL
+          AND v.fecha_contable IS NOT NULL
+          AND v.semana IN (SELECT semana FROM semanas_disponibles)
+          AND v.Tipo_Cambio IS NOT NULL
+          AND SAFE_CAST(v.Tipo_Cambio AS FLOAT64) > 0
       ),
 
       -- Unificar precios internacionales convertidos a MXN (una sola pasada)
@@ -162,12 +198,8 @@ view: cuadrante_izquierdo_inferior {
           SUM(db.toneladas_pvo) AS toneladas_pvo_total,
           SUM(db.toneladas_facturadas) AS toneladas_facturadas_total,
           SUM(db.toneladas_caida_de_pedidos) AS toneladas_caida_de_pedidos_total,
-          -- Cálculo de precio OPVO
-          CASE
-            WHEN SUM(db.toneladas_pvo) > 0 AND SUM(db.imp_facturado_exworks_mn) > 0
-            THEN SUM(db.imp_facturado_exworks_mn) / SUM(db.toneladas_pvo)
-            ELSE NULL
-          END AS precio_opvo_calculado
+          -- Cálculo de precio OPVO usando SAFE_DIVIDE
+          SAFE_DIVIDE(SUM(db.imp_facturado_exworks_mn), SUM(db.toneladas_pvo)) AS precio_opvo_calculado
         FROM datos_base_unificados db
         LEFT JOIN precio_importacion_por_semana pi
           ON db.semana = pi.semana
@@ -210,15 +242,12 @@ view: cuadrante_izquierdo_inferior {
           eg.precio_maximo_historico,
           -- Precio semana anterior usando LAG
           LAG(da.precio_caida_promedio) OVER (ORDER BY da.semana) AS precio_semana_anterior,
-          -- Variación porcentual semana a semana para toneladas
+          -- Variación porcentual semana a semana para toneladas usando SAFE_DIVIDE
           LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana) AS toneladas_semana_anterior,
-          CASE
-            WHEN LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana) IS NOT NULL
-             AND LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana) > 0
-            THEN ROUND(((da.toneladas_facturadas_total - LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana)) /
-                        LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana)) * 100, 2)
-            ELSE NULL
-          END AS variacion_porcentual_toneladas
+          ROUND(SAFE_DIVIDE(
+            (da.toneladas_facturadas_total - LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana)),
+            LAG(da.toneladas_facturadas_total) OVER (ORDER BY da.semana)
+          ) * 100, 2) AS variacion_porcentual_toneladas
         FROM datos_agregados da
         CROSS JOIN estadisticas_globales eg
       )
