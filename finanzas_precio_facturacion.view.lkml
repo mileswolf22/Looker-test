@@ -1,11 +1,11 @@
 # =====================================================
 
-# KPI Precio - Cuadrante Facturación
-# Dashboard: Facturación (cuadrante Precio: valor, Vs Mes Ant, % Cambio, Tendencia)
+# KPI Precio - Cuadrante Facturación (incluye tendencias Precio, Spread, EBIT, % EBIT)
+# Dashboard: Facturación (cuadrante Precio + tendencias para Spread, EBIT, % EBIT)
 # Fuente: ven_mart_comercial
 # =====================================================
-# Según datalake (Precio destino facturación): importe destino mn (ExWorks) / toneladas facturadas
-# Implementado con: imp_facturado_exworks_mn / toneladas_facturadas (promedio ponderado por mes)
+# Precio: importe destino mn (ExWorks) / toneladas. Spread: Precio Exworks - Costo MP.
+# EBIT: Utilidad bruta - Fletes - SG&A - S&H. % EBIT: EBIT / Ventas × 100.
 # =====================================================
 # Ventana de periodos: todo el año 2025 + 2026 hasta la fecha actual.
 # =====================================================
@@ -14,14 +14,19 @@ view: kpi_precio_facturacion {
   derived_table: {
     sql:
       WITH
-      -- Agregación mensual: importe exworks y toneladas para precio promedio ponderado
+      -- Agregación mensual: precio, spread, EBIT, % EBIT (insumos)
       base_mensual AS (
         SELECT
           v.anio,
           v.mes,
           MAX(v.nombre_periodo_mostrar) AS nombre_periodo_mostrar,
           SUM(SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64)) AS importe_exworks_mn,
-          SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS toneladas_facturadas
+          SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS toneladas_facturadas,
+          SUM(SAFE_CAST(v.costo_mp AS FLOAT64) * SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS costo_mp_ponderado,
+          SUM(SAFE_CAST(v.importe_estadistico_neto_mn AS FLOAT64)) AS importe_estadistico_mn,
+          SUM(SAFE_CAST(v.costo_flete_total AS FLOAT64)) AS costo_flete_total_sum,
+          SUM(SAFE_CAST(v.sga_total AS FLOAT64)) AS sga_total_sum,
+          SUM(SAFE_CAST(v.sh AS FLOAT64)) AS sh_sum
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
         WHERE v.mes IS NOT NULL
           AND v.anio IS NOT NULL
@@ -36,18 +41,21 @@ view: kpi_precio_facturacion {
           )
         GROUP BY v.anio, v.mes
       ),
-      -- Precio por tonelada (Precio destino facturación = ExWorks según datalake)
-      con_precio AS (
+      -- Precio, Spread ($/ton), EBIT ($), % EBIT
+      con_metricas AS (
         SELECT
           anio,
           mes,
           nombre_periodo_mostrar,
           importe_exworks_mn,
           toneladas_facturadas,
-          SAFE_DIVIDE(importe_exworks_mn, NULLIF(toneladas_facturadas, 0)) AS precio
+          SAFE_DIVIDE(importe_exworks_mn, NULLIF(toneladas_facturadas, 0)) AS precio,
+          SAFE_DIVIDE(importe_exworks_mn - costo_mp_ponderado, NULLIF(toneladas_facturadas, 0)) AS spread,
+          (importe_estadistico_mn - costo_mp_ponderado - IFNULL(costo_flete_total_sum, 0) - IFNULL(sga_total_sum, 0) - IFNULL(sh_sum, 0)) AS ebit,
+          SAFE_DIVIDE((importe_estadistico_mn - costo_mp_ponderado - IFNULL(costo_flete_total_sum, 0) - IFNULL(sga_total_sum, 0) - IFNULL(sh_sum, 0)), NULLIF(importe_estadistico_mn, 0)) * 100 AS pct_ebit
         FROM base_mensual
       ),
-      -- Comparativo vs mes anterior (LAG)
+      -- LAG para comparativos vs mes anterior
       con_comparativos AS (
         SELECT
           anio,
@@ -56,8 +64,14 @@ view: kpi_precio_facturacion {
           importe_exworks_mn,
           toneladas_facturadas,
           precio,
-          LAG(precio) OVER (ORDER BY anio, mes) AS precio_mes_ant
-        FROM con_precio
+          spread,
+          ebit,
+          pct_ebit,
+          LAG(precio) OVER (ORDER BY anio, mes) AS precio_mes_ant,
+          LAG(spread) OVER (ORDER BY anio, mes) AS spread_mes_ant,
+          LAG(ebit) OVER (ORDER BY anio, mes) AS ebit_mes_ant,
+          LAG(pct_ebit) OVER (ORDER BY anio, mes) AS pct_ebit_mes_ant
+        FROM con_metricas
       )
       SELECT
         anio,
@@ -68,11 +82,13 @@ view: kpi_precio_facturacion {
         ROUND(precio, 2) AS precio,
         ROUND(precio - precio_mes_ant, 2) AS vs_mes_ant,
         ROUND(SAFE_DIVIDE(precio - precio_mes_ant, precio_mes_ant) * 100, 2) AS pct_cambio,
-        CASE
-          WHEN precio_mes_ant IS NULL OR (precio - precio_mes_ant) = 0 THEN 0
-          WHEN (precio - precio_mes_ant) > 0 THEN 1
-          ELSE -1
-        END AS tendencia
+        CASE WHEN precio_mes_ant IS NULL OR (precio - precio_mes_ant) = 0 THEN 0 WHEN (precio - precio_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia,
+        ROUND(spread, 2) AS spread,
+        CASE WHEN spread_mes_ant IS NULL OR (spread - spread_mes_ant) = 0 THEN 0 WHEN (spread - spread_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia_spread,
+        ROUND(ebit, 2) AS ebit,
+        CASE WHEN ebit_mes_ant IS NULL OR (ebit - ebit_mes_ant) = 0 THEN 0 WHEN (ebit - ebit_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia_ebit,
+        ROUND(pct_ebit, 2) AS pct_ebit,
+        CASE WHEN pct_ebit_mes_ant IS NULL OR (pct_ebit - pct_ebit_mes_ant) = 0 THEN 0 WHEN (pct_ebit - pct_ebit_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia_pct_ebit
       FROM con_comparativos
       WHERE toneladas_facturadas > 0
         AND precio IS NOT NULL
@@ -124,7 +140,49 @@ view: kpi_precio_facturacion {
     type: average
     sql: ${TABLE}.tendencia ;;
     value_format_name: decimal_2
-    description: "Tendencia (1=al alza, -1=a la baja, 0=sin cambio)"
+    description: "Tendencia Precio (1=al alza, -1=a la baja, 0=sin cambio; vs mes anterior)"
+  }
+
+  measure: spread {
+    type: average
+    sql: ${TABLE}.spread ;;
+    value_format_name: decimal_2
+    description: "Spread $/ton (Precio Exworks - Costo MP)"
+  }
+
+  measure: tendencia_spread {
+    type: average
+    sql: ${TABLE}.tendencia_spread ;;
+    value_format_name: decimal_2
+    description: "Tendencia Spread (1=al alza, -1=a la baja, 0=sin cambio; vs mes anterior)"
+  }
+
+  measure: ebit {
+    type: sum
+    sql: ${TABLE}.ebit ;;
+    value_format_name: decimal_2
+    description: "EBIT del mes ($)"
+  }
+
+  measure: tendencia_ebit {
+    type: average
+    sql: ${TABLE}.tendencia_ebit ;;
+    value_format_name: decimal_2
+    description: "Tendencia EBIT (1=al alza, -1=a la baja, 0=sin cambio; vs mes anterior)"
+  }
+
+  measure: pct_ebit {
+    type: average
+    sql: ${TABLE}.pct_ebit ;;
+    value_format_name: decimal_2
+    description: "% EBIT (EBIT / Ventas × 100)"
+  }
+
+  measure: tendencia_pct_ebit {
+    type: average
+    sql: ${TABLE}.tendencia_pct_ebit ;;
+    value_format_name: decimal_2
+    description: "Tendencia % EBIT (1=al alza, -1=a la baja, 0=sin cambio; vs mes anterior)"
   }
 
   # ---------- Medidas auxiliares (drill) ----------
@@ -148,6 +206,6 @@ view: kpi_precio_facturacion {
   }
 
   set: detail {
-    fields: [anio, mes, nombre_periodo_mostrar, precio, importe_exworks_mn, toneladas_facturadas]
+    fields: [anio, mes, nombre_periodo_mostrar, precio, spread, ebit, pct_ebit, importe_exworks_mn, toneladas_facturadas]
   }
 }
