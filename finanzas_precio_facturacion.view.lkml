@@ -84,10 +84,16 @@ view: kpi_precio_facturacion {
         ROUND(SAFE_DIVIDE(precio - precio_mes_ant, precio_mes_ant) * 100, 2) AS pct_cambio,
         CASE WHEN precio_mes_ant IS NULL OR (precio - precio_mes_ant) = 0 THEN 0 WHEN (precio - precio_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia,
         ROUND(spread, 2) AS spread,
+        ROUND(spread - spread_mes_ant, 2) AS vs_mes_ant_spread,
+        ROUND(SAFE_DIVIDE(spread - spread_mes_ant, spread_mes_ant) * 100, 2) AS pct_cambio_spread,
         CASE WHEN spread_mes_ant IS NULL OR (spread - spread_mes_ant) = 0 THEN 0 WHEN (spread - spread_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia_spread,
         ROUND(ebit, 2) AS ebit,
+        ROUND(ebit - ebit_mes_ant, 2) AS vs_mes_ant_ebit,
+        ROUND(SAFE_DIVIDE(ebit - ebit_mes_ant, ebit_mes_ant) * 100, 2) AS pct_cambio_ebit,
         CASE WHEN ebit_mes_ant IS NULL OR (ebit - ebit_mes_ant) = 0 THEN 0 WHEN (ebit - ebit_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia_ebit,
         ROUND(pct_ebit, 2) AS pct_ebit,
+        ROUND(pct_ebit - pct_ebit_mes_ant, 2) AS vs_mes_ant_pct_ebit,
+        ROUND(SAFE_DIVIDE(pct_ebit - pct_ebit_mes_ant, pct_ebit_mes_ant) * 100, 2) AS pct_cambio_pct_ebit,
         CASE WHEN pct_ebit_mes_ant IS NULL OR (pct_ebit - pct_ebit_mes_ant) = 0 THEN 0 WHEN (pct_ebit - pct_ebit_mes_ant) > 0 THEN 1 ELSE -1 END AS tendencia_pct_ebit
       FROM con_comparativos
       WHERE toneladas_facturadas > 0
@@ -150,6 +156,20 @@ view: kpi_precio_facturacion {
     description: "Spread $/ton (Precio Exworks - Costo MP)"
   }
 
+  measure: vs_mes_ant_spread {
+    type: average
+    sql: ${TABLE}.vs_mes_ant_spread ;;
+    value_format_name: decimal_2
+    description: "Vs Mes Ant Spread ($/ton)"
+  }
+
+  measure: pct_cambio_spread {
+    type: average
+    sql: ${TABLE}.pct_cambio_spread ;;
+    value_format_name: decimal_2
+    description: "% Cambio Spread (vs mes anterior)"
+  }
+
   measure: tendencia_spread {
     type: average
     sql: ${TABLE}.tendencia_spread ;;
@@ -164,6 +184,20 @@ view: kpi_precio_facturacion {
     description: "EBIT del mes ($)"
   }
 
+  measure: vs_mes_ant_ebit {
+    type: average
+    sql: ${TABLE}.vs_mes_ant_ebit ;;
+    value_format_name: decimal_2
+    description: "Vs Mes Ant EBIT ($)"
+  }
+
+  measure: pct_cambio_ebit {
+    type: average
+    sql: ${TABLE}.pct_cambio_ebit ;;
+    value_format_name: decimal_2
+    description: "% Cambio EBIT (vs mes anterior)"
+  }
+
   measure: tendencia_ebit {
     type: average
     sql: ${TABLE}.tendencia_ebit ;;
@@ -176,6 +210,20 @@ view: kpi_precio_facturacion {
     sql: ${TABLE}.pct_ebit ;;
     value_format_name: decimal_2
     description: "% EBIT (EBIT / Ventas × 100)"
+  }
+
+  measure: vs_mes_ant_pct_ebit {
+    type: average
+    sql: ${TABLE}.vs_mes_ant_pct_ebit ;;
+    value_format_name: decimal_2
+    description: "Vs Mes Ant % EBIT (puntos porcentuales)"
+  }
+
+  measure: pct_cambio_pct_ebit {
+    type: average
+    sql: ${TABLE}.pct_cambio_pct_ebit ;;
+    value_format_name: decimal_2
+    description: "% Cambio % EBIT (vs mes anterior)"
   }
 
   measure: tendencia_pct_ebit {
@@ -206,6 +254,6 @@ view: kpi_precio_facturacion {
   }
 
   set: detail {
-    fields: [anio, mes, nombre_periodo_mostrar, precio, spread, ebit, pct_ebit, importe_exworks_mn, toneladas_facturadas]
+    fields: [anio, mes, nombre_periodo_mostrar, precio, vs_mes_ant, pct_cambio, spread, vs_mes_ant_spread, pct_cambio_spread, ebit, vs_mes_ant_ebit, pct_cambio_ebit, pct_ebit, vs_mes_ant_pct_ebit, pct_cambio_pct_ebit, importe_exworks_mn, toneladas_facturadas]
   }
 }
