@@ -28,9 +28,10 @@ view: kpi_volumen_facturacion {
           AND v.anio IS NOT NULL
           AND v.fecha_contable IS NOT NULL
           AND v.fecha_contable <= CURRENT_DATE()
-          -- Todo 2025 + 2026 hasta la fecha actual (no meses futuros)
+          -- Incluir todos los años (desde el más antiguo en la fuente) para que LAG tenga referencia;
+          -- 2026 solo hasta la fecha actual (no meses futuros)
           AND (
-            CAST(v.anio AS INT64) = 2025
+            CAST(v.anio AS INT64) < 2026
             OR (
               CAST(v.anio AS INT64) = 2026
               AND DATE(CAST(v.anio AS INT64), CAST(SUBSTR(CAST(v.mes AS STRING), 5, 2) AS INT64), 1) <= CURRENT_DATE()
@@ -100,6 +101,8 @@ view: kpi_volumen_facturacion {
         END AS tendencia
       FROM con_comparativos
       WHERE volumen IS NOT NULL
+        -- Solo exponer 2025 y 2026 en el cuadrante (comparativos ya calculados con historial completo)
+        AND CAST(anio AS INT64) >= 2025
       ORDER BY anio DESC, mes DESC ;;
   }
 
