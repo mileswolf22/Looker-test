@@ -48,7 +48,13 @@ view: cuadrante_izquierdo_superior {
           trimestre,
           nombre_periodo_mostrar,
           SAFE_CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
-          SAFE_CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
+          CASE
+            WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
+             AND SAFE_CAST(toneladas_pedidas AS FLOAT64) <> 0
+            THEN SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) *
+                 SAFE_DIVIDE(SAFE_CAST(imp_precio_entrega_mn AS FLOAT64), SAFE_CAST(toneladas_pedidas AS FLOAT64))
+            ELSE NULL
+          END AS precio_caida_pedidos,
           SAFE_CAST(precio_pulso AS FLOAT64) AS precio_pulso,
           SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
           SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
