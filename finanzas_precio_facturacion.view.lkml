@@ -26,7 +26,15 @@ view: kpi_precio_facturacion {
           SUM(SAFE_CAST(v.importe_estadistico_neto_mn AS FLOAT64)) AS importe_estadistico_mn,
           SUM(SAFE_CAST(v.costo_flete_total AS FLOAT64)) AS costo_flete_total_sum,
           SUM(SAFE_CAST(v.sga_total AS FLOAT64)) AS sga_total_sum,
-          SUM(SAFE_CAST(v.sh AS FLOAT64)) AS sh_sum
+          SUM(SAFE_CAST(v.sh AS FLOAT64)) AS sh_sum,
+          -- Insumos fórmula EBIT: importe_estadistico_ajustado - costo_venta - (costo_flete + costo_flete_inbound) - (sga_directo + sga_indirecto) - sh
+          SUM(SAFE_CAST(v.importe_estadistico_ajustado AS FLOAT64)) AS importe_estadistico_ajustado,
+          SUM(SAFE_CAST(v.costo_venta AS FLOAT64)) AS costo_venta,
+          SUM(SAFE_CAST(v.costo_flete AS FLOAT64)) AS costo_flete,
+          SUM(SAFE_CAST(v.costo_flete_inbound AS FLOAT64)) AS costo_flete_inbound,
+          SUM(SAFE_CAST(v.sga_directo AS FLOAT64)) AS sga_directo,
+          SUM(SAFE_CAST(v.sga_indirecto AS FLOAT64)) AS sga_indirecto,
+          SUM(SAFE_CAST(v.sh AS FLOAT64)) AS sh
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
         WHERE v.mes IS NOT NULL
           AND v.anio IS NOT NULL
@@ -41,7 +49,7 @@ view: kpi_precio_facturacion {
           )
         GROUP BY v.anio, v.mes
       ),
-      -- Precio, Spread ($/ton), EBIT ($), % EBIT
+      -- Precio, Spread ($/ton), EBIT ($), % EBIT (fórmula: ingreso_ajustado - costo_venta - fletes - SGA - SH)
       con_metricas AS (
         SELECT
           anio,
@@ -51,8 +59,11 @@ view: kpi_precio_facturacion {
           toneladas_facturadas,
           SAFE_DIVIDE(importe_exworks_mn, NULLIF(toneladas_facturadas, 0)) AS precio,
           SAFE_DIVIDE(importe_exworks_mn - costo_mp_ponderado, NULLIF(toneladas_facturadas, 0)) AS spread,
-          (importe_estadistico_mn - costo_mp_ponderado - IFNULL(costo_flete_total_sum, 0) - IFNULL(sga_total_sum, 0) - IFNULL(sh_sum, 0)) AS ebit,
-          SAFE_DIVIDE((importe_estadistico_mn - costo_mp_ponderado - IFNULL(costo_flete_total_sum, 0) - IFNULL(sga_total_sum, 0) - IFNULL(sh_sum, 0)), NULLIF(importe_estadistico_mn, 0)) * 100 AS pct_ebit
+          (IFNULL(importe_estadistico_ajustado, 0) - IFNULL(costo_venta, 0) - (IFNULL(costo_flete, 0) + IFNULL(costo_flete_inbound, 0)) - (IFNULL(sga_directo, 0) + IFNULL(sga_indirecto, 0)) - IFNULL(sh, 0)) AS ebit,
+          SAFE_DIVIDE(
+            (IFNULL(importe_estadistico_ajustado, 0) - IFNULL(costo_venta, 0) - (IFNULL(costo_flete, 0) + IFNULL(costo_flete_inbound, 0)) - (IFNULL(sga_directo, 0) + IFNULL(sga_indirecto, 0)) - IFNULL(sh, 0)),
+            NULLIF(importe_estadistico_ajustado, 0)
+          ) * 100 AS pct_ebit
         FROM base_mensual
       ),
       -- LAG para comparativos vs mes anterior
