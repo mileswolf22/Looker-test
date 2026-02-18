@@ -10,14 +10,14 @@ view: cuadrante_izquierdo_superior {
           LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
       ),
       semanas_disponibles AS (
-        SELECT DISTINCT semana
+        SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_actual_calculada
         WHERE fecha IS NOT NULL
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
-          AND semana IS NOT NULL
-          AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+          AND anio_semana IS NOT NULL
+          AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
           AND fecha <= CURRENT_DATE()
           AND (
             (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
@@ -30,7 +30,7 @@ view: cuadrante_izquierdo_superior {
             OR (SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) IS NOT NULL AND SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0)
             OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
           )
-        ORDER BY semana DESC
+        ORDER BY anio_semana DESC
         LIMIT 6
       ),
 
@@ -41,9 +41,9 @@ view: cuadrante_izquierdo_superior {
 
       precios_internacionales AS (
         SELECT
-          fecha,
-          semana,
-          mes,
+          fecha AS fecha_contable,
+          anio_semana AS semana,
+          anio_mes AS mes,
           anio,
           trimestre,
           nombre_periodo_mostrar,
@@ -71,7 +71,7 @@ view: cuadrante_izquierdo_superior {
         WHERE fecha IS NOT NULL
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
-          AND semana >= (SELECT semana_limite_str FROM semana_limite)
+          AND anio_semana >= (SELECT semana_limite_str FROM semana_limite)
           AND (
             (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
             OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
@@ -87,7 +87,7 @@ view: cuadrante_izquierdo_superior {
 
       precios_unificados AS (
         SELECT
-          fecha,
+          fecha_contable,
           semana,
           mes,
           anio,
@@ -109,7 +109,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Spain - Rebar FOB' AS referencia_nombre,
           'Spain' AS pais, 'Rebar' AS producto_tipo,
@@ -123,7 +123,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Malasia - Varilla' AS referencia_nombre,
           'Malasia' AS pais, 'Varilla' AS producto_tipo,
@@ -137,7 +137,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Turkey - Ángulo Comercial' AS referencia_nombre,
           'Turkey' AS pais, 'Ángulo' AS producto_tipo,
@@ -151,7 +151,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'China - Ángulo Comercial' AS referencia_nombre,
           'China' AS pais, 'Ángulo' AS producto_tipo,
@@ -165,7 +165,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Turkey - Vigas IPN' AS referencia_nombre,
           'Turkey' AS pais, 'Vigas IPN' AS producto_tipo,
@@ -179,7 +179,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           CONCAT(IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido'), ' - Pulso Vigas') AS referencia_nombre,
           IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido') AS pais,
@@ -194,7 +194,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Sur Europa - Índice AMM' AS referencia_nombre,
           'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo,
@@ -208,7 +208,7 @@ view: cuadrante_izquierdo_superior {
         UNION ALL
 
         SELECT
-          fecha, semana, mes, anio, trimestre, nombre_periodo_mostrar,
+          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Sudeste Asiático - Índice AMM' AS referencia_nombre,
           'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo,
@@ -222,7 +222,7 @@ view: cuadrante_izquierdo_superior {
 
       precios_con_calculos AS (
         SELECT
-          fecha,
+          fecha_contable,
           semana,
           mes,
           anio,
@@ -236,7 +236,7 @@ view: cuadrante_izquierdo_superior {
           Tipo_Cambio,
           precio_caida_pedidos AS precio_caida_mxn,
           precio_pulso,
-          LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha DESC) AS precio_semana_anterior,
+          LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
           SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
         FROM precios_unificados
         WHERE precio_mxn IS NOT NULL
@@ -252,7 +252,7 @@ view: cuadrante_izquierdo_superior {
         anio,
         trimestre,
         nombre_periodo_mostrar,
-        fecha,
+        fecha_contable,
         precio_usd,
         precio_mxn AS precio_nov,
         precio_caida_mxn,
@@ -316,10 +316,10 @@ view: cuadrante_izquierdo_superior {
     description: "Período formateado para mostrar (ej: Nov-2025)"
   }
 
-  dimension: fecha {
+  dimension: fecha_contable {
     type: date
     datatype: date
-    sql: ${TABLE}.fecha ;;
+    sql: ${TABLE}.fecha_contable ;;
     description: "Fecha contable"
   }
 
@@ -409,7 +409,7 @@ view: cuadrante_izquierdo_superior {
       anio,
       trimestre,
       nombre_periodo_mostrar,
-      fecha,
+      fecha_contable,
       precio_usd,
       precio_nov,
       precio_caida_mxn,
