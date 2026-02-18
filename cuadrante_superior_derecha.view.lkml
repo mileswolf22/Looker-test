@@ -15,13 +15,13 @@ view: cuadrante_superior_derecha {
       ),
       -- Encontrar las últimas 6 semanas disponibles con datos válidos
       semanas_disponibles AS (
-        SELECT DISTINCT semana
+        SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_actual_calculada
-        WHERE fecha_contable IS NOT NULL
-          AND semana IS NOT NULL
-          AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
-          AND fecha_contable <= CURRENT_DATE()
+        WHERE fecha IS NOT NULL
+          AND anio_semana IS NOT NULL
+          AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+          AND fecha <= CURRENT_DATE()
           AND (
             spread IS NOT NULL
             OR (
@@ -33,17 +33,17 @@ view: cuadrante_superior_derecha {
             OR toneladas_facturadas IS NOT NULL
             OR precio_pulso IS NOT NULL
           )
-        ORDER BY semana DESC
+        ORDER BY anio_semana DESC
         LIMIT 6
       ),
       datos_base AS (
         SELECT
-          v.semana,
-          v.mes,
+          v.anio_semana AS semana,
+          v.anio_mes AS mes,
           v.anio,
           v.trimestre,
           v.nombre_periodo_mostrar,
-          v.fecha_contable,
+          v.fecha AS fecha_contable,
           SAFE_CAST(v.spread AS FLOAT64) AS spread,
           SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
           -- Calcular precio_caida_pedidos según la fórmula proporcionada
@@ -59,9 +59,9 @@ view: cuadrante_superior_derecha {
           SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
           SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
-        WHERE v.semana IS NOT NULL
-          AND v.fecha_contable IS NOT NULL
-          AND v.semana IN (SELECT semana FROM semanas_disponibles)
+        WHERE v.anio_semana IS NOT NULL
+          AND v.fecha IS NOT NULL
+          AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
           AND (
             v.spread IS NOT NULL
             OR (
@@ -197,20 +197,6 @@ view: cuadrante_superior_derecha {
     datatype: date
     sql: ${TABLE}.fecha_contable_max ;;
     description: "Fecha contable máxima de la semana"
-  }
-
-  dimension: spread_dim {
-    type: number
-    sql: ${TABLE}.indice_precio ;;
-    value_format_name: decimal_4
-    description: "Índice de precio (precio_caida / pulso)"
-  }
-
-  dimension: indice_precio_dim {
-    type: number
-    sql: ${TABLE}.indice_precio ;;
-    value_format_name: decimal_4
-    description: "Índice de precio (precio_caida / pulso)"
   }
 
   # ============================================
