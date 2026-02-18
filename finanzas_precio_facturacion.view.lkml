@@ -18,7 +18,7 @@ view: kpi_precio_facturacion {
       base_mensual AS (
         SELECT
           v.anio,
-          v.mes,
+          v.anio_mes AS mes,
           MAX(v.nombre_periodo_mostrar) AS nombre_periodo_mostrar,
           SUM(SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64)) AS importe_exworks_mn,
           SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS toneladas_facturadas,
@@ -36,18 +36,18 @@ view: kpi_precio_facturacion {
           SUM(SAFE_CAST(v.sga_indirecto AS FLOAT64)) AS sga_indirecto,
           SUM(SAFE_CAST(v.sh AS FLOAT64)) AS sh
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
-        WHERE v.mes IS NOT NULL
+        WHERE v.anio_mes IS NOT NULL
           AND v.anio IS NOT NULL
-          AND v.fecha_contable IS NOT NULL
-          AND v.fecha_contable <= CURRENT_DATE()
+          AND v.fecha IS NOT NULL
+          AND v.fecha <= CURRENT_DATE()
           AND (
             CAST(v.anio AS INT64) = 2025
             OR (
               CAST(v.anio AS INT64) = 2026
-              AND DATE(CAST(v.anio AS INT64), CAST(SUBSTR(CAST(v.mes AS STRING), 5, 2) AS INT64), 1) <= CURRENT_DATE()
+              AND DATE(CAST(v.anio AS INT64), CAST(SUBSTR(CAST(v.anio_mes AS STRING), 5, 2) AS INT64), 1) <= CURRENT_DATE()
             )
           )
-        GROUP BY v.anio, v.mes
+        GROUP BY v.anio, v.anio_mes
       ),
       -- Precio, Spread ($/ton), EBIT ($), % EBIT (fórmula: ingreso_ajustado - costo_venta - fletes - SGA - SH)
       con_metricas AS (
