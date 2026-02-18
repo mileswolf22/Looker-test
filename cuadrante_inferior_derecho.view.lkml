@@ -8,17 +8,17 @@ view: cuadrante_derecho_inferior {
       meses_ordenados AS (
         SELECT
           anio,
-          mes,
-          ROW_NUMBER() OVER (ORDER BY anio DESC, CAST(mes AS INT64) DESC) AS rn
+          anio_mes AS mes,
+          ROW_NUMBER() OVER (ORDER BY anio DESC, CAST(anio_mes AS INT64) DESC) AS rn
         FROM (
           SELECT DISTINCT
             SAFE_CAST(anio AS INT64) AS anio,
-            mes
+            anio_mes
           FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
           CROSS JOIN periodo_actual
-          WHERE mes IS NOT NULL
+          WHERE anio_mes IS NOT NULL
             AND anio IS NOT NULL
-            AND SAFE_CAST(mes AS INT64) <= periodo_hasta
+            AND SAFE_CAST(anio_mes AS INT64) <= periodo_hasta
             AND (
               SAFE_CAST(spread AS FLOAT64) IS NOT NULL
               OR SAFE_CAST(costo_mp AS FLOAT64) IS NOT NULL
@@ -33,7 +33,7 @@ view: cuadrante_derecho_inferior {
       ),
       datos_base AS (
         SELECT
-          v.mes,
+          v.anio_mes AS mes,
           v.anio,
           v.nombre_periodo_mostrar,
           SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS imp_precio_entrega_mn,
@@ -42,8 +42,8 @@ view: cuadrante_derecho_inferior {
           SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` v
         INNER JOIN ultimos_5_meses m
-          ON SAFE_CAST(v.anio AS INT64) = m.anio AND v.mes = m.mes
-        WHERE v.mes IS NOT NULL
+          ON SAFE_CAST(v.anio AS INT64) = m.anio AND v.anio_mes = m.mes
+        WHERE v.anio_mes IS NOT NULL
           AND v.anio IS NOT NULL
       ),
       datos_por_mes AS (
