@@ -26,8 +26,8 @@ view: cuadrante_izquierdo_inferior {
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND (
-            precio_caida_pedidos IS NOT NULL
-            OR (
+            -- precio_caida_pedidos es calculado; considerar semanas con insumos para calcularlo
+            (
               SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
               AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
               AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
@@ -63,14 +63,14 @@ view: cuadrante_izquierdo_inferior {
           SAFE_CAST(v.Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
           SAFE_CAST(v.Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
           SAFE_CAST(v.indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
-          -- Calcular precio_caida_pedidos según la fórmula proporcionada
+          -- precio_caida_pedidos es calculado (no existe en el mart): toneladas_caida_de_pedidos * (imp_precio_entrega_mn / toneladas_pedidas)
           CASE
             WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
               AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) IS NOT NULL
             THEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) *
                  SAFE_DIVIDE(SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
                              SAFE_CAST(v.toneladas_pedidas AS FLOAT64))
-            ELSE SAFE_CAST(v.precio_caida_pedidos AS FLOAT64)
+            ELSE NULL
           END AS precio_caida_pedidos,
           SAFE_CAST(v.Platts_total AS FLOAT64) AS platts_total,
           SAFE_CAST(v.senal_de_precio AS FLOAT64) AS senal_de_precio,
