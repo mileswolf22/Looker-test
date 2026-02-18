@@ -19,10 +19,10 @@ view: cuadrante_izquierdo_inferior {
         SELECT DISTINCT semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_actual_calculada
-        WHERE fecha_contable IS NOT NULL
+        WHERE fecha IS NOT NULL
           AND semana IS NOT NULL
           AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
-          AND fecha_contable <= CURRENT_DATE()
+          AND fecha <= CURRENT_DATE()
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND (
@@ -47,11 +47,11 @@ view: cuadrante_izquierdo_inferior {
       datos_base_unificados AS (
         SELECT
           v.semana,
-          v.mes,
+          v.anio_mes AS mes,
           v.anio,
           v.trimestre,
           v.nombre_periodo_mostrar,
-          v.fecha_contable,
+          v.fecha AS fecha_contable,
           -- Campos para precios internacionales (usando SAFE_CAST)
           SAFE_CAST(v.Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
           SAFE_CAST(v.Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
@@ -81,7 +81,7 @@ view: cuadrante_izquierdo_inferior {
           SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
         WHERE v.semana IS NOT NULL
-          AND v.fecha_contable IS NOT NULL
+          AND v.fecha IS NOT NULL
           AND v.semana IN (SELECT semana FROM semanas_disponibles)
           AND v.Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(v.Tipo_Cambio AS FLOAT64) > 0
