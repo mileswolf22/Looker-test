@@ -14,7 +14,7 @@ view: cuadrante_izquierdo_inferior {
           CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
           LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
       ),
-      -- Encontrar las últimas 6 semanas disponibles con datos válidos
+      -- Encontrar las últimas 5 semanas disponibles con datos válidos
       semanas_disponibles AS (
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
@@ -39,7 +39,7 @@ view: cuadrante_izquierdo_inferior {
             OR toneladas_facturadas IS NOT NULL
           )
         ORDER BY anio_semana DESC
-        LIMIT 6
+        LIMIT 5
       ),
 
       -- Una sola lectura de tabla base con todos los campos necesarios
@@ -50,6 +50,13 @@ view: cuadrante_izquierdo_inferior {
           v.anio,
           v.trimestre,
           v.nombre_periodo_mostrar,
+          v.nom_grupo_estadistico1,
+          v.nom_grupo_estadistico2,
+          v.nom_grupo_estadistico3,
+          v.nom_grupo_estadistico4,
+          v.nom_subdireccion,
+          v.nom_gerencia,
+          v.nom_zona,
           v.fecha AS fecha_contable,
           -- Campos para precios internacionales (usando SAFE_CAST)
           SAFE_CAST(v.Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
@@ -186,6 +193,13 @@ view: cuadrante_izquierdo_inferior {
           MIN(db.anio) AS anio,
           MIN(db.trimestre) AS trimestre,
           MIN(db.nombre_periodo_mostrar) AS nombre_periodo_mostrar,
+          MIN(db.nom_grupo_estadistico1) AS nom_grupo_estadistico1,
+          MIN(db.nom_grupo_estadistico2) AS nom_grupo_estadistico2,
+          MIN(db.nom_grupo_estadistico3) AS nom_grupo_estadistico3,
+          MIN(db.nom_grupo_estadistico4) AS nom_grupo_estadistico4,
+          MIN(db.nom_subdireccion) AS nom_subdireccion,
+          MIN(db.nom_gerencia) AS nom_gerencia,
+          MIN(db.nom_zona) AS nom_zona,
           MIN(db.fecha_contable) AS fecha_contable_min,
           MAX(db.fecha_contable) AS fecha_contable_max,
           -- Promedios para líneas de precio
@@ -203,7 +217,7 @@ view: cuadrante_izquierdo_inferior {
         LEFT JOIN precio_importacion_por_semana pi
           ON db.semana = pi.semana
         WHERE db.precio_caida_pedidos IS NOT NULL
-        GROUP BY db.semana
+        GROUP BY db.semana, db.nom_grupo_estadistico1, db.nom_grupo_estadistico2, db.nom_grupo_estadistico3, db.nom_grupo_estadistico4, db.nom_subdireccion, db.nom_gerencia, db.nom_zona
       ),
 
       -- Estadísticas globales calculadas una sola vez (fuera de window functions)
@@ -224,6 +238,13 @@ view: cuadrante_izquierdo_inferior {
           da.anio,
           da.trimestre,
           da.nombre_periodo_mostrar,
+          da.nom_grupo_estadistico1,
+          da.nom_grupo_estadistico2,
+          da.nom_grupo_estadistico3,
+          da.nom_grupo_estadistico4,
+          da.nom_subdireccion,
+          da.nom_gerencia,
+          da.nom_zona,
           da.fecha_contable_min,
           da.fecha_contable_max,
           da.precio_caida_promedio,
@@ -257,6 +278,13 @@ view: cuadrante_izquierdo_inferior {
         anio,
         trimestre,
         nombre_periodo_mostrar,
+        nom_grupo_estadistico1,
+        nom_grupo_estadistico2,
+        nom_grupo_estadistico3,
+        nom_grupo_estadistico4,
+        nom_subdireccion,
+        nom_gerencia,
+        nom_zona,
         fecha_contable_min,
         fecha_contable_max,
         -- Valores para KPIs y medidor
@@ -336,6 +364,48 @@ view: cuadrante_izquierdo_inferior {
     datatype: date
     sql: ${TABLE}.fecha_contable_max ;;
     description: "Fecha contable máxima de la semana"
+  }
+
+  dimension: nom_grupo_estadistico1 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico1 ;;
+    description: "Nom Grupo Estadistico 1"
+  }
+
+  dimension: nom_grupo_estadistico2 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico2 ;;
+    description: "Nom Grupo Estadistico 2"
+  }
+
+  dimension: nom_grupo_estadistico3 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico3 ;;
+    description: "Nom Grupo Estadistico 3"
+  }
+
+  dimension: nom_grupo_estadistico4 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico4 ;;
+    description: "Nom Grupo Estadistico 4"
+  }
+
+  dimension: nom_subdireccion {
+    type: string
+    sql: ${TABLE}.nom_subdireccion ;;
+    description: "Nom Subdireccion"
+  }
+
+  dimension: nom_gerencia {
+    type: string
+    sql: ${TABLE}.nom_gerencia ;;
+    description: "Nom Gerencia"
+  }
+
+  dimension: nom_zona {
+    type: string
+    sql: ${TABLE}.nom_zona ;;
+    description: "Nom Zona"
   }
 
   # ============================================
@@ -460,6 +530,13 @@ view: cuadrante_izquierdo_inferior {
       anio,
       trimestre,
       nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
       fecha_contable_min,
       fecha_contable_max,
       precio_caida_promedio,
