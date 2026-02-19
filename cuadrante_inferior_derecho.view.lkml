@@ -69,15 +69,35 @@ view: cuadrante_derecho_inferior {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           SAFE_DIVIDE(SUM(imp_precio_entrega_mn), NULLIF(SUM(toneladas_facturadas), 0)) AS precio_varilla_destino,
           AVG(costo_mp) AS costo_mezcla_promedio,
           AVG(spread) AS spread_promedio
         FROM datos_base
-        GROUP BY mes, anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona
+        GROUP BY mes, anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
       ),
       con_orden AS (
         SELECT
-          *,
+          mes,
+          anio,
+          nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
+          precio_varilla_destino,
+          costo_mezcla_promedio,
+          spread_promedio,
           ROW_NUMBER() OVER (ORDER BY anio ASC, CAST(mes AS INT64) ASC) AS orden
         FROM datos_por_mes
       ),
@@ -93,6 +113,10 @@ view: cuadrante_derecho_inferior {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           precio_varilla_destino,
           costo_mezcla_promedio,
           spread_promedio,
@@ -111,6 +135,10 @@ view: cuadrante_derecho_inferior {
         nom_subdireccion,
         nom_gerencia,
         nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
         ROUND(precio_varilla_destino, 2) AS precio_varilla,
         ROUND(costo_mezcla_promedio, 2) AS costo_mezcla,
         ROUND(spread_promedio, 2) AS spread,
@@ -190,6 +218,34 @@ view: cuadrante_derecho_inferior {
     description: "Nom Zona"
   }
 
+  dimension: nom_cliente {
+    type: string
+    sql: ${TABLE}.nom_cliente ;;
+    description: "Nombre cliente"
+    group_item_label: "Filtros"
+  }
+
+  dimension: zona {
+    type: string
+    sql: ${TABLE}.zona ;;
+    description: "Zona"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_estado {
+    type: string
+    sql: ${TABLE}.nom_estado ;;
+    description: "Nombre estado"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_canal {
+    type: string
+    sql: ${TABLE}.nom_canal ;;
+    description: "Nombre canal"
+    group_item_label: "Filtros"
+  }
+
   # ============================================
   # MEASURES - Métricas principales
   # ============================================
@@ -238,6 +294,11 @@ view: cuadrante_derecho_inferior {
   # SETS
   # ============================================
 
+  set: filtros {
+    fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
+  }
+
   set: detail {
     fields: [
       mes,
@@ -250,6 +311,10 @@ view: cuadrante_derecho_inferior {
       nom_subdireccion,
       nom_gerencia,
       nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
       precio_varilla,
       costo_mezcla,
       spread,
