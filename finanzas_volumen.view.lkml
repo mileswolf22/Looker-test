@@ -27,6 +27,10 @@ view: kpi_volumen_facturacion {
           v.nom_subdireccion,
           v.nom_gerencia,
           v.nom_zona,
+          v.nom_cliente_unico AS nom_cliente,
+          v.zona,
+          v.nom_estado_consignado AS nom_estado,
+          v.nom_canal,
           SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS volumen,
           SUM(SAFE_CAST(v.toneladas_pvo AS FLOAT64)) AS pvo_mes,
           SUM(SAFE_CAST(v.toneladas_business_plan AS FLOAT64)) AS bp_mes
@@ -36,7 +40,7 @@ view: kpi_volumen_facturacion {
           AND v.fecha IS NOT NULL
           AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH)
           AND v.fecha <= CURRENT_DATE()
-        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona
+        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona, v.nom_cliente_unico, v.zona, v.nom_estado_consignado, v.nom_canal
       ),
       -- Acumulados YTD por año y segmento (suma de enero hasta mes actual)
       con_ytd AS (
@@ -51,12 +55,16 @@ view: kpi_volumen_facturacion {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           volumen,
           pvo_mes,
           bp_mes,
-          SUM(volumen) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY mes) AS acum_facturado_ytd,
-          SUM(pvo_mes) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY mes) AS acum_pvo_ytd,
-          SUM(bp_mes) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY mes) AS acum_bp_ytd
+          SUM(volumen) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY mes) AS acum_facturado_ytd,
+          SUM(pvo_mes) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY mes) AS acum_pvo_ytd,
+          SUM(bp_mes) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY mes) AS acum_bp_ytd
         FROM base_mensual
       ),
       -- Comparativos: mismo mes año anterior y mes anterior (LAG) por segmento
@@ -72,6 +80,10 @@ view: kpi_volumen_facturacion {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           volumen,
           pvo_mes,
           bp_mes,
@@ -79,11 +91,11 @@ view: kpi_volumen_facturacion {
           acum_pvo_ytd,
           acum_bp_ytd,
           LAG(volumen) OVER (
-            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, CAST(SUBSTR(CAST(mes AS STRING), 5, 2) AS INT64)
+            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal, CAST(SUBSTR(CAST(mes AS STRING), 5, 2) AS INT64)
             ORDER BY anio
           ) AS volumen_anio_ant,
           LAG(volumen) OVER (
-            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona
+            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
             ORDER BY anio, mes
           ) AS volumen_mes_ant
         FROM con_ytd
@@ -99,6 +111,10 @@ view: kpi_volumen_facturacion {
         nom_subdireccion,
         nom_gerencia,
         nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
         ROUND(volumen, 2) AS volumen,
         ROUND(pvo_mes, 2) AS pvo_mes,
         ROUND(bp_mes, 2) AS bp_mes,
@@ -191,6 +207,30 @@ view: kpi_volumen_facturacion {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
+  }
+
+  dimension: nom_cliente {
+    type: string
+    sql: ${TABLE}.nom_cliente ;;
+    description: "Nombre cliente"
+  }
+
+  dimension: zona {
+    type: string
+    sql: ${TABLE}.zona ;;
+    description: "Zona"
+  }
+
+  dimension: nom_estado {
+    type: string
+    sql: ${TABLE}.nom_estado ;;
+    description: "Nombre estado"
+  }
+
+  dimension: nom_canal {
+    type: string
+    sql: ${TABLE}.nom_canal ;;
+    description: "Nombre canal"
   }
 
   # ---------- Medidas principales (cuadrante) ----------
