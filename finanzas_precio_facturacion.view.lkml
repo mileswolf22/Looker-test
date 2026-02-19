@@ -27,6 +27,10 @@ view: kpi_precio_facturacion {
           v.nom_subdireccion,
           v.nom_gerencia,
           v.nom_zona,
+          v.nom_cliente_unico AS nom_cliente,
+          v.zona,
+          v.nom_estado_consignado AS nom_estado,
+          v.nom_canal,
           SUM(SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64)) AS importe_exworks_mn,
           SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS toneladas_facturadas,
           SUM(SAFE_CAST(v.costo_mp AS FLOAT64) * SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS costo_mp_ponderado,
@@ -48,7 +52,7 @@ view: kpi_precio_facturacion {
           AND v.fecha IS NOT NULL
           AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH)
           AND v.fecha <= CURRENT_DATE()
-        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona
+        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona, v.nom_cliente_unico, v.zona, v.nom_estado_consignado, v.nom_canal
       ),
       -- Precio, Spread ($/ton), EBIT ($), % EBIT (fórmula: ingreso_ajustado - costo_venta - fletes - SGA - SH)
       con_metricas AS (
@@ -63,6 +67,10 @@ view: kpi_precio_facturacion {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           importe_exworks_mn,
           toneladas_facturadas,
           SAFE_DIVIDE(importe_exworks_mn, NULLIF(toneladas_facturadas, 0)) AS precio,
@@ -87,16 +95,20 @@ view: kpi_precio_facturacion {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           importe_exworks_mn,
           toneladas_facturadas,
           precio,
           spread,
           ebit,
           pct_ebit,
-          LAG(precio) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS precio_mes_ant,
-          LAG(spread) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS spread_mes_ant,
-          LAG(ebit) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS ebit_mes_ant,
-          LAG(pct_ebit) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS pct_ebit_mes_ant
+          LAG(precio) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY anio, mes) AS precio_mes_ant,
+          LAG(spread) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY anio, mes) AS spread_mes_ant,
+          LAG(ebit) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY anio, mes) AS ebit_mes_ant,
+          LAG(pct_ebit) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal ORDER BY anio, mes) AS pct_ebit_mes_ant
         FROM con_metricas
       )
       SELECT
@@ -110,6 +122,10 @@ view: kpi_precio_facturacion {
         nom_subdireccion,
         nom_gerencia,
         nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
         ROUND(importe_exworks_mn, 2) AS importe_exworks_mn,
         ROUND(toneladas_facturadas, 2) AS toneladas_facturadas,
         ROUND(precio, 2) AS precio,
@@ -193,6 +209,30 @@ view: kpi_precio_facturacion {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
+  }
+
+  dimension: nom_cliente {
+    type: string
+    sql: ${TABLE}.nom_cliente ;;
+    description: "Nombre cliente"
+  }
+
+  dimension: zona {
+    type: string
+    sql: ${TABLE}.zona ;;
+    description: "Zona"
+  }
+
+  dimension: nom_estado {
+    type: string
+    sql: ${TABLE}.nom_estado ;;
+    description: "Nombre estado"
+  }
+
+  dimension: nom_canal {
+    type: string
+    sql: ${TABLE}.nom_canal ;;
+    description: "Nombre canal"
   }
 
   # ---------- Medidas principales (cuadrante Precio) ----------
