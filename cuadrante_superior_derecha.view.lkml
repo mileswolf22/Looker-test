@@ -36,6 +36,7 @@ view: cuadrante_superior_derecha {
         ORDER BY anio_semana DESC
         LIMIT 5
       ),
+      -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (datos_base → datos_con_indice → datos_agregados → SELECT final) para filtros en tiles
       datos_base AS (
         SELECT
           v.anio_semana AS semana,
@@ -100,6 +101,10 @@ view: cuadrante_superior_derecha {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           fecha_contable,
           spread,
           costo_mp,
@@ -126,6 +131,10 @@ view: cuadrante_superior_derecha {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           MIN(fecha_contable) AS fecha_contable_min,
           MAX(fecha_contable) AS fecha_contable_max,
           -- Promedio de Spread (solo valores no nulos)
@@ -142,7 +151,7 @@ view: cuadrante_superior_derecha {
           COUNT(spread) AS registros_con_spread
         FROM datos_con_indice
         WHERE (indice_precio IS NOT NULL OR spread IS NOT NULL)
-        GROUP BY semana, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona
+        GROUP BY semana, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
         HAVING AVG(indice_precio) IS NOT NULL
            AND AVG(spread) IS NOT NULL
       )
@@ -160,6 +169,10 @@ view: cuadrante_superior_derecha {
         nom_subdireccion,
         nom_gerencia,
         nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
         fecha_contable_min,
         fecha_contable_max,
         -- Medidas principales para el bubble chart
@@ -273,6 +286,34 @@ view: cuadrante_superior_derecha {
     description: "Nom Zona"
   }
 
+  dimension: nom_cliente {
+    type: string
+    sql: ${TABLE}.nom_cliente ;;
+    description: "Nombre cliente"
+    group_item_label: "Filtros"
+  }
+
+  dimension: zona {
+    type: string
+    sql: ${TABLE}.zona ;;
+    description: "Zona"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_estado {
+    type: string
+    sql: ${TABLE}.nom_estado ;;
+    description: "Nombre estado"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_canal {
+    type: string
+    sql: ${TABLE}.nom_canal ;;
+    description: "Nombre canal"
+    group_item_label: "Filtros"
+  }
+
   # ============================================
   # MEASURES (Valores numéricos calculables)
   # ============================================
@@ -321,6 +362,11 @@ view: cuadrante_superior_derecha {
   # SETS (Agrupaciones de campos)
   # ============================================
 
+  set: filtros {
+    fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
+  }
+
   set: detail {
     fields: [
       semana,
@@ -336,6 +382,10 @@ view: cuadrante_superior_derecha {
       nom_subdireccion,
       nom_gerencia,
       nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
       fecha_contable_min,
       fecha_contable_max,
       indice_precio,
