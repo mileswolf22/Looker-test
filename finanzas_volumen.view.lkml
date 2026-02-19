@@ -7,7 +7,7 @@
 # Métricas: Volumen, % PVO/BP Acumulada, % PVO/BP TC,
 # Vs Año Ant, Vs Mes Ant, % Cambio anual/mensual, Tendencia, Acum vs Avance del mes
 # =====================================================
-# Ventana de periodos: todo el año 2025 + 2026 hasta la fecha actual.
+# Ventana de periodos: fecha actual menos 5 meses hasta la fecha actual.
 # =====================================================
 
 view: kpi_volumen_facturacion {
@@ -20,6 +20,13 @@ view: kpi_volumen_facturacion {
           v.anio,
           v.anio_mes AS mes,
           MAX(v.nombre_periodo_mostrar) AS nombre_periodo_mostrar,
+          v.nom_grupo_estadistico1,
+          v.nom_grupo_estadistico2,
+          v.nom_grupo_estadistico3,
+          v.nom_grupo_estadistico4,
+          v.nom_subdireccion,
+          v.nom_gerencia,
+          v.nom_zona,
           SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS volumen,
           SUM(SAFE_CAST(v.toneladas_pvo AS FLOAT64)) AS pvo_mes,
           SUM(SAFE_CAST(v.toneladas_business_plan AS FLOAT64)) AS bp_mes
@@ -27,39 +34,44 @@ view: kpi_volumen_facturacion {
         WHERE v.anio_mes IS NOT NULL
           AND v.anio IS NOT NULL
           AND v.fecha IS NOT NULL
+          AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH)
           AND v.fecha <= CURRENT_DATE()
-          -- Incluir todos los años (desde el más antiguo en la fuente) para que LAG tenga referencia;
-          -- 2026 solo hasta la fecha actual (no meses futuros)
-          AND (
-            CAST(v.anio AS INT64) < 2026
-            OR (
-              CAST(v.anio AS INT64) = 2026
-              AND DATE(CAST(v.anio AS INT64), CAST(SUBSTR(CAST(v.anio_mes AS STRING), 5, 2) AS INT64), 1) <= CURRENT_DATE()
-            )
-          )
-        GROUP BY v.anio, v.anio_mes
+        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona
       ),
-      -- Acumulados YTD por año (suma de enero hasta mes actual)
+      -- Acumulados YTD por año y segmento (suma de enero hasta mes actual)
       con_ytd AS (
         SELECT
           anio,
           mes,
           nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
           volumen,
           pvo_mes,
           bp_mes,
-          SUM(volumen) OVER (PARTITION BY anio ORDER BY mes) AS acum_facturado_ytd,
-          SUM(pvo_mes) OVER (PARTITION BY anio ORDER BY mes) AS acum_pvo_ytd,
-          SUM(bp_mes) OVER (PARTITION BY anio ORDER BY mes) AS acum_bp_ytd
+          SUM(volumen) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY mes) AS acum_facturado_ytd,
+          SUM(pvo_mes) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY mes) AS acum_pvo_ytd,
+          SUM(bp_mes) OVER (PARTITION BY anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY mes) AS acum_bp_ytd
         FROM base_mensual
       ),
-      -- Comparativos: mismo mes año anterior y mes anterior (LAG)
-      -- PARTITION BY número de mes (1-12), no por mes YYYYMM, para que mismo mes de años distintos compartan partición
+      -- Comparativos: mismo mes año anterior y mes anterior (LAG) por segmento
       con_comparativos AS (
         SELECT
           anio,
           mes,
           nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
           volumen,
           pvo_mes,
           bp_mes,
@@ -67,16 +79,26 @@ view: kpi_volumen_facturacion {
           acum_pvo_ytd,
           acum_bp_ytd,
           LAG(volumen) OVER (
-            PARTITION BY CAST(SUBSTR(CAST(mes AS STRING), 5, 2) AS INT64)
+            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, CAST(SUBSTR(CAST(mes AS STRING), 5, 2) AS INT64)
             ORDER BY anio
           ) AS volumen_anio_ant,
-          LAG(volumen) OVER (ORDER BY anio, mes) AS volumen_mes_ant
+          LAG(volumen) OVER (
+            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona
+            ORDER BY anio, mes
+          ) AS volumen_mes_ant
         FROM con_ytd
       )
       SELECT
         anio,
         mes,
         nombre_periodo_mostrar,
+        nom_grupo_estadistico1,
+        nom_grupo_estadistico2,
+        nom_grupo_estadistico3,
+        nom_grupo_estadistico4,
+        nom_subdireccion,
+        nom_gerencia,
+        nom_zona,
         ROUND(volumen, 2) AS volumen,
         ROUND(pvo_mes, 2) AS pvo_mes,
         ROUND(bp_mes, 2) AS bp_mes,
@@ -127,6 +149,48 @@ view: kpi_volumen_facturacion {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Etiqueta del periodo (ej. Ene-2025)"
+  }
+
+  dimension: nom_grupo_estadistico1 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico1 ;;
+    description: "Nom Grupo Estadistico 1"
+  }
+
+  dimension: nom_grupo_estadistico2 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico2 ;;
+    description: "Nom Grupo Estadistico 2"
+  }
+
+  dimension: nom_grupo_estadistico3 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico3 ;;
+    description: "Nom Grupo Estadistico 3"
+  }
+
+  dimension: nom_grupo_estadistico4 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico4 ;;
+    description: "Nom Grupo Estadistico 4"
+  }
+
+  dimension: nom_subdireccion {
+    type: string
+    sql: ${TABLE}.nom_subdireccion ;;
+    description: "Nom Subdireccion"
+  }
+
+  dimension: nom_gerencia {
+    type: string
+    sql: ${TABLE}.nom_gerencia ;;
+    description: "Nom Gerencia"
+  }
+
+  dimension: nom_zona {
+    type: string
+    sql: ${TABLE}.nom_zona ;;
+    description: "Nom Zona"
   }
 
   # ---------- Medidas principales (cuadrante) ----------
@@ -256,6 +320,6 @@ view: kpi_volumen_facturacion {
   }
 
   set: detail {
-    fields: [anio, mes, nombre_periodo_mostrar, volumen, pvo_mes, bp_mes]
+    fields: [anio, mes, nombre_periodo_mostrar, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, volumen, pvo_mes, bp_mes]
   }
 }
