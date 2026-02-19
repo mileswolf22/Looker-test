@@ -39,6 +39,7 @@ view: cuadrante_izquierdo_superior {
         FROM semanas_disponibles
       ),
 
+      -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (precios_internacionales → precios_unificados → precios_con_calculos → SELECT final) para filtros en tiles
       precios_internacionales AS (
         SELECT
           fecha AS fecha_contable,
@@ -111,6 +112,10 @@ view: cuadrante_izquierdo_superior {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           Tipo_Cambio,
           precio_caida_pedidos,
           precio_pulso,
@@ -129,7 +134,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Spain - Rebar FOB' AS referencia_nombre,
           'Spain' AS pais, 'Rebar' AS producto_tipo,
@@ -145,7 +150,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Malasia - Varilla' AS referencia_nombre,
           'Malasia' AS pais, 'Varilla' AS producto_tipo,
@@ -161,7 +166,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Turkey - Ángulo Comercial' AS referencia_nombre,
           'Turkey' AS pais, 'Ángulo' AS producto_tipo,
@@ -177,7 +182,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'China - Ángulo Comercial' AS referencia_nombre,
           'China' AS pais, 'Ángulo' AS producto_tipo,
@@ -193,7 +198,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Turkey - Vigas IPN' AS referencia_nombre,
           'Turkey' AS pais, 'Vigas IPN' AS producto_tipo,
@@ -209,7 +214,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           CONCAT(IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido'), ' - Pulso Vigas') AS referencia_nombre,
           IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido') AS pais,
@@ -226,7 +231,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Sur Europa - Índice AMM' AS referencia_nombre,
           'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo,
@@ -242,7 +247,7 @@ view: cuadrante_izquierdo_superior {
         SELECT
           fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
           nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona,
+          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
           Tipo_Cambio, precio_caida_pedidos, precio_pulso,
           'Sudeste Asiático - Índice AMM' AS referencia_nombre,
           'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo,
@@ -269,6 +274,10 @@ view: cuadrante_izquierdo_superior {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
           referencia_nombre,
           pais,
           producto_tipo,
@@ -300,6 +309,10 @@ view: cuadrante_izquierdo_superior {
         nom_subdireccion,
         nom_gerencia,
         nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
         fecha_contable,
         precio_usd,
         precio_mxn AS precio_nov,
@@ -413,6 +426,34 @@ view: cuadrante_izquierdo_superior {
     description: "Nom Zona"
   }
 
+  dimension: nom_cliente {
+    type: string
+    sql: ${TABLE}.nom_cliente ;;
+    description: "Nombre cliente"
+    group_item_label: "Filtros"
+  }
+
+  dimension: zona {
+    type: string
+    sql: ${TABLE}.zona ;;
+    description: "Zona"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_estado {
+    type: string
+    sql: ${TABLE}.nom_estado ;;
+    description: "Nombre estado"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_canal {
+    type: string
+    sql: ${TABLE}.nom_canal ;;
+    description: "Nombre canal"
+    group_item_label: "Filtros"
+  }
+
   # ============================================
   # MEASURES (Valores numéricos calculables)
   # ============================================
@@ -489,6 +530,10 @@ view: cuadrante_izquierdo_superior {
   # SETS (Agrupaciones de campos)
   # ============================================
 
+  set: filtros {
+    fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
   set: detail {
     fields: [
       referencia_nombre,
@@ -506,6 +551,10 @@ view: cuadrante_izquierdo_superior {
       nom_subdireccion,
       nom_gerencia,
       nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
       fecha_contable,
       precio_usd,
       precio_nov,
