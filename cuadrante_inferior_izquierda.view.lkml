@@ -57,6 +57,10 @@ view: cuadrante_izquierdo_inferior {
           v.nom_subdireccion,
           v.nom_gerencia,
           v.nom_zona,
+          v.nom_cliente_unico AS nom_cliente,
+          v.nom_zona AS zona,
+          v.nom_estado_consignado AS nom_estado,
+          v.nom_canal,
           v.fecha AS fecha_contable,
           -- Campos para precios internacionales (usando SAFE_CAST)
           SAFE_CAST(v.Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
