@@ -28,7 +28,7 @@ view: kpi_volumen_facturacion {
           v.nom_gerencia,
           v.nom_zona,
           v.nom_cliente_unico AS nom_cliente,
-          v.zona,
+          v.nom_zona AS zona,
           v.nom_estado_consignado AS nom_estado,
           v.nom_canal,
           SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS volumen,
@@ -40,7 +40,7 @@ view: kpi_volumen_facturacion {
           AND v.fecha IS NOT NULL
           AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH)
           AND v.fecha <= CURRENT_DATE()
-        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona, v.nom_cliente_unico, v.zona, v.nom_estado_consignado, v.nom_canal
+        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona, v.nom_cliente_unico, v.nom_estado_consignado, v.nom_canal
       ),
       -- Acumulados YTD por año y segmento (suma de enero hasta mes actual)
       con_ytd AS (
