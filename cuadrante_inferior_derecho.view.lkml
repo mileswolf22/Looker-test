@@ -36,6 +36,13 @@ view: cuadrante_derecho_inferior {
           v.anio_mes AS mes,
           v.anio,
           v.nombre_periodo_mostrar,
+          v.nom_grupo_estadistico1,
+          v.nom_grupo_estadistico2,
+          v.nom_grupo_estadistico3,
+          v.nom_grupo_estadistico4,
+          v.nom_subdireccion,
+          v.nom_gerencia,
+          v.nom_zona,
           SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS imp_precio_entrega_mn,
           SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
           SAFE_CAST(v.spread AS FLOAT64) AS spread,
@@ -51,11 +58,18 @@ view: cuadrante_derecho_inferior {
           mes,
           anio,
           MIN(nombre_periodo_mostrar) AS nombre_periodo_mostrar,
+          MIN(nom_grupo_estadistico1) AS nom_grupo_estadistico1,
+          MIN(nom_grupo_estadistico2) AS nom_grupo_estadistico2,
+          MIN(nom_grupo_estadistico3) AS nom_grupo_estadistico3,
+          MIN(nom_grupo_estadistico4) AS nom_grupo_estadistico4,
+          MIN(nom_subdireccion) AS nom_subdireccion,
+          MIN(nom_gerencia) AS nom_gerencia,
+          MIN(nom_zona) AS nom_zona,
           SAFE_DIVIDE(SUM(imp_precio_entrega_mn), NULLIF(SUM(toneladas_facturadas), 0)) AS precio_varilla_destino,
           AVG(costo_mp) AS costo_mezcla_promedio,
           AVG(spread) AS spread_promedio
         FROM datos_base
-        GROUP BY mes, anio
+        GROUP BY mes, anio, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona
       ),
       con_orden AS (
         SELECT
@@ -68,6 +82,13 @@ view: cuadrante_derecho_inferior {
           mes,
           anio,
           nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
           precio_varilla_destino,
           costo_mezcla_promedio,
           spread_promedio,
@@ -79,6 +100,13 @@ view: cuadrante_derecho_inferior {
         mes,
         anio,
         nombre_periodo_mostrar,
+        nom_grupo_estadistico1,
+        nom_grupo_estadistico2,
+        nom_grupo_estadistico3,
+        nom_grupo_estadistico4,
+        nom_subdireccion,
+        nom_gerencia,
+        nom_zona,
         ROUND(precio_varilla_destino, 2) AS precio_varilla,
         ROUND(costo_mezcla_promedio, 2) AS costo_mezcla,
         ROUND(spread_promedio, 2) AS spread,
@@ -114,6 +142,48 @@ view: cuadrante_derecho_inferior {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar (ej: Jul-2025)"
+  }
+
+  dimension: nom_grupo_estadistico1 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico1 ;;
+    description: "Nom Grupo Estadistico 1"
+  }
+
+  dimension: nom_grupo_estadistico2 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico2 ;;
+    description: "Nom Grupo Estadistico 2"
+  }
+
+  dimension: nom_grupo_estadistico3 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico3 ;;
+    description: "Nom Grupo Estadistico 3"
+  }
+
+  dimension: nom_grupo_estadistico4 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico4 ;;
+    description: "Nom Grupo Estadistico 4"
+  }
+
+  dimension: nom_subdireccion {
+    type: string
+    sql: ${TABLE}.nom_subdireccion ;;
+    description: "Nom Subdireccion"
+  }
+
+  dimension: nom_gerencia {
+    type: string
+    sql: ${TABLE}.nom_gerencia ;;
+    description: "Nom Gerencia"
+  }
+
+  dimension: nom_zona {
+    type: string
+    sql: ${TABLE}.nom_zona ;;
+    description: "Nom Zona"
   }
 
   # ============================================
@@ -169,6 +239,13 @@ view: cuadrante_derecho_inferior {
       mes,
       anio,
       nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
       precio_varilla,
       costo_mezcla,
       spread,
