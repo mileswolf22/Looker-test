@@ -54,6 +54,10 @@ view: cuadrante_izquierdo_superior {
           nom_subdireccion,
           nom_gerencia,
           nom_zona,
+          nom_cliente_unico AS nom_cliente,
+          nom_zona AS zona,
+          nom_estado_consignado AS nom_estado,
+          nom_canal,
           SAFE_CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
           CASE
             WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
