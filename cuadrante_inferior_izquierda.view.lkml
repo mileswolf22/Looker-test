@@ -42,6 +42,7 @@ view: cuadrante_izquierdo_inferior {
         LIMIT 5
       ),
 
+      -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (datos_base_unificados → datos_agregados → datos_con_variaciones → SELECT final) para filtros en tiles
       -- Una sola lectura de tabla base con todos los campos necesarios
       datos_base_unificados AS (
         SELECT
@@ -204,6 +205,10 @@ view: cuadrante_izquierdo_inferior {
           MIN(db.nom_subdireccion) AS nom_subdireccion,
           MIN(db.nom_gerencia) AS nom_gerencia,
           MIN(db.nom_zona) AS nom_zona,
+          MIN(db.nom_cliente) AS nom_cliente,
+          MIN(db.zona) AS zona,
+          MIN(db.nom_estado) AS nom_estado,
+          MIN(db.nom_canal) AS nom_canal,
           MIN(db.fecha_contable) AS fecha_contable_min,
           MAX(db.fecha_contable) AS fecha_contable_max,
           -- Promedios para líneas de precio
@@ -221,7 +226,7 @@ view: cuadrante_izquierdo_inferior {
         LEFT JOIN precio_importacion_por_semana pi
           ON db.semana = pi.semana
         WHERE db.precio_caida_pedidos IS NOT NULL
-        GROUP BY db.semana, db.nom_grupo_estadistico1, db.nom_grupo_estadistico2, db.nom_grupo_estadistico3, db.nom_grupo_estadistico4, db.nom_subdireccion, db.nom_gerencia, db.nom_zona
+        GROUP BY db.semana, db.nom_grupo_estadistico1, db.nom_grupo_estadistico2, db.nom_grupo_estadistico3, db.nom_grupo_estadistico4, db.nom_subdireccion, db.nom_gerencia, db.nom_zona, db.nom_cliente, db.zona, db.nom_estado, db.nom_canal
       ),
 
       -- Estadísticas globales calculadas una sola vez (fuera de window functions)
@@ -249,6 +254,10 @@ view: cuadrante_izquierdo_inferior {
           da.nom_subdireccion,
           da.nom_gerencia,
           da.nom_zona,
+          da.nom_cliente,
+          da.zona,
+          da.nom_estado,
+          da.nom_canal,
           da.fecha_contable_min,
           da.fecha_contable_max,
           da.precio_caida_promedio,
@@ -289,6 +298,10 @@ view: cuadrante_izquierdo_inferior {
         nom_subdireccion,
         nom_gerencia,
         nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
         fecha_contable_min,
         fecha_contable_max,
         -- Valores para KPIs y medidor
@@ -412,6 +425,34 @@ view: cuadrante_izquierdo_inferior {
     description: "Nom Zona"
   }
 
+  dimension: nom_cliente {
+    type: string
+    sql: ${TABLE}.nom_cliente ;;
+    description: "Nombre cliente"
+    group_item_label: "Filtros"
+  }
+
+  dimension: zona {
+    type: string
+    sql: ${TABLE}.zona ;;
+    description: "Zona"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_estado {
+    type: string
+    sql: ${TABLE}.nom_estado ;;
+    description: "Nombre estado"
+    group_item_label: "Filtros"
+  }
+
+  dimension: nom_canal {
+    type: string
+    sql: ${TABLE}.nom_canal ;;
+    description: "Nombre canal"
+    group_item_label: "Filtros"
+  }
+
   # ============================================
   # MEASURES (Valores numéricos calculables)
   # ============================================
@@ -526,6 +567,10 @@ view: cuadrante_izquierdo_inferior {
   # SETS (Agrupaciones de campos)
   # ============================================
 
+  set: filtros {
+    fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
   set: detail {
     fields: [
       semana,
@@ -541,6 +586,10 @@ view: cuadrante_izquierdo_inferior {
       nom_subdireccion,
       nom_gerencia,
       nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
       fecha_contable_min,
       fecha_contable_max,
       precio_caida_promedio,
