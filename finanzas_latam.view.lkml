@@ -186,7 +186,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.toneladas_pedidas ;;
     value_format_name: decimal_2
     description: "Pedidos Ton (suma de toneladas pedidas)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: deuda_pm {
@@ -194,7 +194,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_pm ;;
     value_format_name: usd
     description: "Deuda PM (precio medio deuda = importe deuda total mn / toneladas_deuda_total; mientras no exista imp_deuda_total_mn en mart se muestra 0)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: deuda_total {
@@ -202,7 +202,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_total ;;
     value_format_name: decimal_2
     description: "Deuda Total (toneladas_deuda_total)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: deuda_libre {
@@ -210,7 +210,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_libre ;;
     value_format_name: decimal_2
     description: "Deuda Libre (toneladas_deuda_libre)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: deuda_autofleteo {
@@ -218,7 +218,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_autofleteo ;;
     value_format_name: decimal_2
     description: "Deuda Autofleteo (toneladas_deuda_auto_fleteo)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: deuda_mes_resto {
@@ -226,7 +226,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_mes_resto ;;
     value_format_name: decimal_2
     description: "Deuda Mes Resto (toneladas_deuda_mes_resto)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: deuda_mes_siguiente {
@@ -234,7 +234,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_mes_siguiente ;;
     value_format_name: decimal_2
     description: "Deuda Mes Siguiente (toneladas_deuda_mes_siguiente)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_ayer {
@@ -242,7 +242,7 @@ view: tablero_direccion_gii {
     sql: CASE WHEN ${TABLE}.fecha_contable = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
     value_format_name: decimal_2
     description: "Fact Ayer (toneladas facturadas el día anterior)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_acum {
@@ -250,7 +250,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.toneladas_facturadas ;;
     value_format_name: decimal_2
     description: "Fact Acum (suma de toneladas facturadas en el periodo)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_acum_importe {
@@ -258,7 +258,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.imp_facturacion_mn ;;
     value_format_name: usd
     description: "Fact Acum importe (suma imp_precio_entrega_mn). Fact PM = fact_acum_importe / fact_acum (table calc)."
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_pm {
@@ -266,7 +266,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.fact_pm_row ;;
     value_format_name: usd
     description: "Fact PM (precio medio facturación = importe/toneladas facturadas; promedio por fila)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: pvo {
@@ -274,7 +274,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.toneladas_pvo ;;
     value_format_name: decimal_2
     description: "PVO (toneladas plan de ventas operativo)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: pct_pvo {
@@ -282,7 +282,7 @@ view: tablero_direccion_gii {
     sql: 100.0 * ${fact_acum} / NULLIF(${pvo}, 0) ;;
     value_format_name: decimal_2
     description: "% PVO (Fact Acum / PVO × 100). Formato: decimal; interpretar como %."
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: bp {
@@ -290,7 +290,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.toneladas_business_plan ;;
     value_format_name: decimal_2
     description: "BP (toneladas Budget Plan)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: pct_bp {
@@ -298,7 +298,7 @@ view: tablero_direccion_gii {
     sql: 100.0 * ${fact_acum} / NULLIF(${bp}, 0) ;;
     value_format_name: decimal_2
     description: "% BP (Fact Acum / BP × 100). Formato: decimal; interpretar como %."
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_acum_2023 {
@@ -306,7 +306,7 @@ view: tablero_direccion_gii {
     sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2023 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
     value_format_name: decimal_2
     description: "Fact Acum año 2023 (toneladas facturadas; solo filas con anio=2023 y sin nulls)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_acum_2024 {
@@ -314,7 +314,7 @@ view: tablero_direccion_gii {
     sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2024 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
     value_format_name: decimal_2
     description: "Fact Acum año 2024 (toneladas facturadas; solo filas con anio=2024 y sin nulls)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   measure: fact_acum_2025 {
@@ -322,7 +322,7 @@ view: tablero_direccion_gii {
     sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2025 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
     value_format_name: decimal_2
     description: "Fact Acum año 2025 (toneladas facturadas; solo filas con anio=2025 y sin nulls)"
-    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+    drill_fields: [detail*]
   }
 
   # ============================================
@@ -348,16 +348,17 @@ view: tablero_direccion_gii {
     ]
   }
 
+  # Orden del desglose: Dirección → GE1 → GE2 → GE3 → GE4 → resto → campos numéricos
   set: detail {
     fields: [
       nom_direccion,
+      nom_subdireccion,
+      nom_gerencia,
       gii,
       nom_grupo_estadistico1,
       nom_grupo_estadistico2,
       nom_grupo_estadistico3,
       nom_grupo_estadistico4,
-      nom_subdireccion,
-      nom_gerencia,
       nom_zona,
       nom_estado,
       nom_canal,
