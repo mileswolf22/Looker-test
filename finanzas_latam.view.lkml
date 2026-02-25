@@ -172,6 +172,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.toneladas_pedidas ;;
     value_format_name: decimal_2
     description: "Pedidos Ton (suma de toneladas pedidas)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: desde_pm {
@@ -179,6 +180,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.desde_pm ;;
     value_format_name: usd
     description: "Desde PM (precio medio por tonelada)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: desde_total {
@@ -186,6 +188,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.desde_total ;;
     value_format_name: usd
     description: "Desde Total (importe total)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: desde_libre {
@@ -193,6 +196,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.desde_libre ;;
     value_format_name: decimal_2
     description: "Desde Libre. Sustituir por columna real del mart si aplica."
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: deuda_autorutas {
@@ -200,6 +204,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_autorutas ;;
     value_format_name: decimal_2
     description: "Deuda AutoRutas. Sustituir por columna real del mart si aplica."
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: deuda_metro {
@@ -207,6 +212,7 @@ view: tablero_direccion_gii {
     sql: ${TABLE}.deuda_metro ;;
     value_format_name: decimal_2
     description: "Deuda Metro. Sustituir por columna real del mart si aplica."
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   # ============================================
