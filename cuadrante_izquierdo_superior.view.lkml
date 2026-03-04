@@ -1,24 +1,25 @@
 view: cuadrante_izquierdo_superior {
   derived_table: {
     sql:
+      -- Optimizado: filtro 90 días, una sola pasada UNNEST en lugar de 9 UNION ALL
       WITH
-      -- Encontrar la semana máxima disponible en los datos y calcular límite (últimas 5 semanas)
-      -- Filtrar solo semanas hasta la fecha actual para evitar semanas futuras
       semana_actual_calculada AS (
         SELECT
           CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
           LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
       ),
+      -- Solo últimas 5 semanas; restringir a 90 días para reducir bytes escaneados (partition pruning)
       semanas_disponibles AS (
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_actual_calculada
         WHERE fecha IS NOT NULL
+          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+          AND fecha <= CURRENT_DATE()
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND anio_semana IS NOT NULL
           AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
-          AND fecha <= CURRENT_DATE()
           AND (
             (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
             OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
@@ -33,13 +34,9 @@ view: cuadrante_izquierdo_superior {
         ORDER BY anio_semana DESC
         LIMIT 5
       ),
-
       semana_limite AS (
-        SELECT MIN(semana) AS semana_limite_str
-        FROM semanas_disponibles
+        SELECT MIN(semana) AS semana_limite_str FROM semanas_disponibles
       ),
-
-      -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (precios_internacionales → precios_unificados → precios_con_calculos → SELECT final) para filtros en tiles
       precios_internacionales AS (
         SELECT
           fecha AS fecha_contable,
@@ -61,8 +58,7 @@ view: cuadrante_izquierdo_superior {
           nom_canal,
           SAFE_CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
           CASE
-            WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
-             AND SAFE_CAST(toneladas_pedidas AS FLOAT64) <> 0
+            WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL AND SAFE_CAST(toneladas_pedidas AS FLOAT64) <> 0
             THEN SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) *
                  SAFE_DIVIDE(SAFE_CAST(imp_precio_entrega_mn AS FLOAT64), SAFE_CAST(toneladas_pedidas AS FLOAT64))
             ELSE NULL
@@ -81,9 +77,11 @@ view: cuadrante_izquierdo_superior {
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_limite
         WHERE fecha IS NOT NULL
+          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND anio_semana >= (SELECT semana_limite_str FROM semana_limite)
+          AND anio_semana IN (SELECT semana FROM semanas_disponibles)
           AND (
             (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
             OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
@@ -96,167 +94,48 @@ view: cuadrante_izquierdo_superior {
             OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
           )
       ),
-
+      -- Una sola pasada con UNNEST en lugar de 9 UNION ALL (menos lecturas del CTE, menos shuffle)
       precios_unificados AS (
         SELECT
-          fecha_contable,
-          semana,
-          mes,
-          anio,
-          trimestre,
-          nombre_periodo_mostrar,
-          nom_grupo_estadistico1,
-          nom_grupo_estadistico2,
-          nom_grupo_estadistico3,
-          nom_grupo_estadistico4,
-          nom_subdireccion,
-          nom_gerencia,
-          nom_zona,
-          nom_cliente,
-          zona,
-          nom_estado,
-          nom_canal,
-          Tipo_Cambio,
-          precio_caida_pedidos,
-          precio_pulso,
-          'Turkey - Rebar FOB' AS referencia_nombre,
-          'Turkey' AS pais,
-          'Rebar' AS producto_tipo,
-          precio_usd_turkey_rebar AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_turkey_rebar IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_turkey_rebar ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_turkey_rebar IS NOT NULL
-          AND precio_usd_turkey_rebar > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'Spain - Rebar FOB' AS referencia_nombre,
-          'Spain' AS pais, 'Rebar' AS producto_tipo,
-          precio_usd_spain_rebar AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_spain_rebar IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_spain_rebar ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_spain_rebar IS NOT NULL
-          AND precio_usd_spain_rebar > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'Malasia - Varilla' AS referencia_nombre,
-          'Malasia' AS pais, 'Varilla' AS producto_tipo,
-          precio_usd_malasia_varilla AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_malasia_varilla IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_malasia_varilla ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_malasia_varilla IS NOT NULL
-          AND precio_usd_malasia_varilla > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'Turkey - Ángulo Comercial' AS referencia_nombre,
-          'Turkey' AS pais, 'Ángulo' AS producto_tipo,
-          precio_usd_turkey_angulo AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_turkey_angulo IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_turkey_angulo ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_turkey_angulo IS NOT NULL
-          AND precio_usd_turkey_angulo > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'China - Ángulo Comercial' AS referencia_nombre,
-          'China' AS pais, 'Ángulo' AS producto_tipo,
-          precio_usd_china_angulo AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_china_angulo IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_china_angulo ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_china_angulo IS NOT NULL
-          AND precio_usd_china_angulo > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'Turkey - Vigas IPN' AS referencia_nombre,
-          'Turkey' AS pais, 'Vigas IPN' AS producto_tipo,
-          precio_usd_turkey_vigas AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_turkey_vigas IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_turkey_vigas ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_turkey_vigas IS NOT NULL
-          AND precio_usd_turkey_vigas > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          CONCAT(IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido'), ' - Pulso Vigas') AS referencia_nombre,
-          IFNULL(Pais_Origen_Pulso_Vigas, 'Desconocido') AS pais,
-          'Pulso Vigas' AS producto_tipo,
-          precio_usd_pulso_vigas AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_pulso_vigas IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_pulso_vigas ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_pulso_vigas IS NOT NULL
-          AND precio_usd_pulso_vigas > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'Sur Europa - Índice AMM' AS referencia_nombre,
-          'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo,
-          precio_usd_amm_europa AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_amm_europa IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_amm_europa ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_amm_europa IS NOT NULL
-          AND precio_usd_amm_europa > 0
-
-        UNION ALL
-
-        SELECT
-          fecha_contable, semana, mes, anio, trimestre, nombre_periodo_mostrar,
-          nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
-          nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal,
-          Tipo_Cambio, precio_caida_pedidos, precio_pulso,
-          'Sudeste Asiático - Índice AMM' AS referencia_nombre,
-          'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo,
-          precio_usd_amm_asia AS precio_usd,
-          CASE WHEN Tipo_Cambio IS NOT NULL AND precio_usd_amm_asia IS NOT NULL
-            THEN Tipo_Cambio * precio_usd_amm_asia ELSE NULL END AS precio_mxn
-        FROM precios_internacionales
-        WHERE precio_usd_amm_asia IS NOT NULL
-          AND precio_usd_amm_asia > 0
+          p.fecha_contable,
+          p.semana,
+          p.mes,
+          p.anio,
+          p.trimestre,
+          p.nombre_periodo_mostrar,
+          p.nom_grupo_estadistico1,
+          p.nom_grupo_estadistico2,
+          p.nom_grupo_estadistico3,
+          p.nom_grupo_estadistico4,
+          p.nom_subdireccion,
+          p.nom_gerencia,
+          p.nom_zona,
+          p.nom_cliente,
+          p.zona,
+          p.nom_estado,
+          p.nom_canal,
+          p.Tipo_Cambio,
+          p.precio_caida_pedidos,
+          p.precio_pulso,
+          ref.referencia_nombre,
+          ref.pais,
+          ref.producto_tipo,
+          ref.precio_usd,
+          CASE WHEN p.Tipo_Cambio IS NOT NULL AND ref.precio_usd IS NOT NULL
+            THEN p.Tipo_Cambio * ref.precio_usd ELSE NULL END AS precio_mxn
+        FROM precios_internacionales p
+        CROSS JOIN UNNEST([
+          STRUCT('Turkey - Rebar FOB' AS referencia_nombre, 'Turkey' AS pais, 'Rebar' AS producto_tipo, p.precio_usd_turkey_rebar AS precio_usd),
+          STRUCT('Spain - Rebar FOB' AS referencia_nombre, 'Spain' AS pais, 'Rebar' AS producto_tipo, p.precio_usd_spain_rebar AS precio_usd),
+          STRUCT('Malasia - Varilla' AS referencia_nombre, 'Malasia' AS pais, 'Varilla' AS producto_tipo, p.precio_usd_malasia_varilla AS precio_usd),
+          STRUCT('Turkey - Ángulo Comercial' AS referencia_nombre, 'Turkey' AS pais, 'Ángulo' AS producto_tipo, p.precio_usd_turkey_angulo AS precio_usd),
+          STRUCT('China - Ángulo Comercial' AS referencia_nombre, 'China' AS pais, 'Ángulo' AS producto_tipo, p.precio_usd_china_angulo AS precio_usd),
+          STRUCT('Turkey - Vigas IPN' AS referencia_nombre, 'Turkey' AS pais, 'Vigas IPN' AS producto_tipo, p.precio_usd_turkey_vigas AS precio_usd),
+          STRUCT(CONCAT(IFNULL(p.Pais_Origen_Pulso_Vigas, 'Desconocido'), ' - Pulso Vigas') AS referencia_nombre, IFNULL(p.Pais_Origen_Pulso_Vigas, 'Desconocido') AS pais, 'Pulso Vigas' AS producto_tipo, p.precio_usd_pulso_vigas AS precio_usd),
+          STRUCT('Sur Europa - Índice AMM' AS referencia_nombre, 'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo, p.precio_usd_amm_europa AS precio_usd),
+          STRUCT('Sudeste Asiático - Índice AMM' AS referencia_nombre, 'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo, p.precio_usd_amm_asia AS precio_usd)
+        ]) AS ref
+        WHERE ref.precio_usd IS NOT NULL AND ref.precio_usd > 0
       ),
 
       precios_con_calculos AS (
@@ -532,6 +411,7 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
   }
 
   set: detail {
